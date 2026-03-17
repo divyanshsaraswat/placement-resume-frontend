@@ -2,15 +2,28 @@
 
 import { useAuth } from "@/context/auth-context";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LogOut, Bell, Search, User } from "lucide-react";
+import { LogOut, Bell, Search, User, Menu } from "lucide-react";
 import { motion } from "framer-motion";
 
-export function DashboardHeader() {
+interface DashboardHeaderProps {
+  onMenuClick?: () => void;
+}
+
+export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const { user, logout } = useAuth();
 
   return (
-    <header className="h-16 px-8 flex items-center justify-between bg-white dark:bg-[#020617] sticky top-0 z-40">
-      <div className="flex items-center gap-3">
+    <header className="h-16 px-4 md:px-8 flex items-center justify-between bg-white dark:bg-[#020617] border-b border-border/50 sticky top-0 z-40">
+      <div className="flex items-center gap-2 md:gap-3">
+        {onMenuClick && (
+          <button 
+            onClick={onMenuClick}
+            className="p-2 -ml-2 text-slate-400 hover:text-primary transition-colors lg:hidden"
+          >
+            <Menu size={20} strokeWidth={1.5} />
+          </button>
+        )}
+        
         {/* Minimalist Search Icon instead of bar */}
         <button className="p-2 text-slate-300 hover:text-primary transition-colors">
           <Search size={18} strokeWidth={1} />

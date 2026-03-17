@@ -61,14 +61,14 @@ export default function StudentResumesPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-16 py-8">
       {/* Page Header */}
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
         <div className="space-y-1">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Documents</h1>
-          <p className="text-sm text-slate-400 font-light">Your professional document pipeline and institutional status.</p>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Documents</h1>
+          <p className="text-sm text-slate-400 font-light pr-4">Your professional document pipeline and institutional status.</p>
         </div>
         <button 
           onClick={() => setIsCreateOpen(true)}
-          className="px-6 py-2.5 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary/20 transition-all flex items-center gap-2"
+          className="w-full sm:w-auto px-6 py-2.5 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary/20 transition-all flex items-center justify-center gap-2"
         >
           <Plus size={18} />
           <span>New Version</span>
@@ -76,8 +76,8 @@ export default function StudentResumesPage() {
       </div>
 
       {/* Filters & Search */}
-      <div className="flex items-center gap-8 border-b border-slate-50 dark:border-slate-900 pb-4">
-        <div className="flex-1 flex items-center gap-3">
+      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 border-b border-slate-50 dark:border-slate-900 pb-4">
+        <div className="flex-1 w-full flex items-center gap-3">
           <Search size={16} className="text-slate-300" />
           <input 
             type="text" 
@@ -85,7 +85,7 @@ export default function StudentResumesPage() {
             className="bg-transparent border-none outline-none w-full text-sm font-light placeholder:text-slate-300"
           />
         </div>
-        <button className="text-sm font-medium text-slate-400 hover:text-primary transition-all flex items-center gap-2">
+        <button className="w-full sm:w-auto text-sm font-medium text-slate-400 hover:text-primary transition-all flex items-center justify-center gap-2">
           <Filter size={16} />
           <span>Filter</span>
         </button>

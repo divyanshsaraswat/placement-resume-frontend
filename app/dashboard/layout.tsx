@@ -4,7 +4,7 @@ import { useAuth } from "@/context/auth-context";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { DashboardHeader } from "@/components/dashboard/DashboardHeader";
 import { useRouter, usePathname } from "next/navigation";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -16,6 +16,7 @@ export default function DashboardLayout({
   const { isAuthenticated, isLoading, user } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -43,15 +44,19 @@ export default function DashboardLayout({
   const isEditorPage = pathname.includes("/edit");
 
   return (
-    <div className="flex h-screen bg-background text-foreground overflow-hidden">
-      <Sidebar />
+    <div className="flex h-screen bg-background text-foreground overflow-hidden relative">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1 min-w-0 flex flex-col relative h-full">
-        {!isEditorPage && <DashboardHeader />}
+        {!isEditorPage && (
+          <DashboardHeader 
+            onMenuClick={() => setIsSidebarOpen(true)} 
+          />
+        )}
         <div 
           data-lenis-prevent
           className={cn(
             "flex-1 min-h-0 w-full",
-            !isEditorPage ? "overflow-y-auto overflow-x-hidden p-8" : "h-full"
+            !isEditorPage ? "overflow-y-auto overflow-x-hidden p-4 md:p-8" : "h-full"
           )}
         >
           <motion.div 
@@ -60,7 +65,7 @@ export default function DashboardLayout({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.35, ease: "easeOut" }}
-            className={cn("w-full", isEditorPage && "h-full")}
+            className={cn("w-full h-full")}
           >
             {children}
           </motion.div>

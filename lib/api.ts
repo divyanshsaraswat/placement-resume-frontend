@@ -118,11 +118,27 @@ export const resumeApi = {
       }
     }
   },
+  getValidationQueue: async (params: { search?: string; year?: number; department?: string; group?: string }, signal?: AbortSignal) => {
+    const response = await api.get("/resumes/validation-queue", { params, signal });
+    return response.data;
+  },
 };
 
 export const adminApi = {
-  getUsers: async (signal?: AbortSignal) => {
-    const response = await api.get("/users", { signal });
+  getUsers: async (role?: string, signal?: AbortSignal) => {
+    const response = await api.get("/users", { params: { role }, signal });
+    return response.data;
+  },
+  getStudents: async (params: { search?: string; year?: number; department?: string }, signal?: AbortSignal) => {
+    const response = await api.get("/users/students", { params, signal });
+    return response.data;
+  },
+  updateUser: async (userId: string, data: any) => {
+    const response = await api.patch(`/users/${userId}`, data);
+    return response.data;
+  },
+  deleteUser: async (userId: string) => {
+    const response = await api.delete(`/users/${userId}`);
     return response.data;
   },
   getLogs: async (signal?: AbortSignal) => {

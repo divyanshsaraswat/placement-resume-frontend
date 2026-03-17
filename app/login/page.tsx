@@ -3,13 +3,29 @@
 import { motion } from "framer-motion";
 import { toast } from "sonner";
 import { useAuth } from "@/context/auth-context";
-import { useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect } from "react";
 import Link from "next/link";
 import { Sparkles, ShieldCheck, ArrowLeft } from "lucide-react";
 
-export default function LoginPage() {
+function LoginContent() {
   const { loginWithGoogle } = useAuth();
-  const router = useRouter();
+  const searchParams = useSearchParams();
+  const error = searchParams.get("error");
+
+  useEffect(() => {
+    if (error) {
+      if (error.includes("@mnit.ac.in") || error === "Forbidden" || error === "AccessDenied") {
+        toast.error("Institutional Access Required", {
+          description: "Only @mnit.ac.in emails are allowed on this network."
+        });
+      } else {
+        toast.error("Authentication Failed", {
+          description: error === "AccessDenied" ? "Login was cancelled or denied." : error
+        });
+      }
+    }
+  }, [error]);
 
   const handleLogin = async () => {
     try {
@@ -92,5 +108,13 @@ export default function LoginPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginContent />
+    </Suspense>
   );
 }

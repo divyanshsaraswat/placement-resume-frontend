@@ -47,7 +47,7 @@ export function Hero() {
           {/* Headline */}
           <motion.h1 
             variants={itemVariants}
-            className="text-6xl md:text-8xl font-semibold tracking-tight leading-[1] max-w-4xl text-slate-800 dark:text-slate-100"
+            className="text-5xl sm:text-6xl md:text-8xl font-semibold tracking-tight leading-[1] max-w-4xl text-slate-800 dark:text-slate-100 px-4"
           >
             Refined document <br />
             <span className="text-primary/70">Intelligence.</span>
@@ -56,17 +56,17 @@ export function Hero() {
           {/* Subheadline */}
           <motion.p 
             variants={itemVariants} 
-            className="max-w-xl text-lg text-slate-400 font-light leading-relaxed"
+            className="max-w-xl text-base md:text-lg text-slate-400 font-light leading-relaxed px-6"
           >
             An institutional ecosystem engineered for technical precision. 
             AI-validated resumes for the next generation of engineers.
           </motion.p>
 
           {/* CTAs */}
-          <motion.div variants={itemVariants} className="flex items-center gap-8 pt-4">
+          <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 pt-4">
             <Link 
               href="/login"
-              className="px-8 py-3 bg-primary text-white rounded-full text-sm font-medium hover:scale-[1.02] transition-all"
+              className="w-full sm:w-auto px-8 py-3 bg-primary text-white rounded-full text-sm font-medium hover:scale-[1.02] transition-all text-center"
             >
               Get Started
             </Link>
@@ -102,7 +102,7 @@ export function Hero() {
 
       {/* Institutional Banner */}
       <div className="mt-32 w-full max-w-4xl mx-auto px-6">
-         <div className="flex flex-wrap justify-between items-center gap-8 opacity-20 text-[10px] uppercase tracking-[0.4em] font-medium text-slate-400">
+         <div className="flex flex-wrap justify-center sm:justify-between items-center gap-x-12 gap-y-8 opacity-20 text-[10px] uppercase tracking-[0.4em] font-medium text-slate-400">
             <div className="flex items-center gap-2"><GraduationCap size={16} strokeWidth={1} /> MNIT JAIPUR</div>
             <div className="flex items-center gap-2"><Shield size={16} strokeWidth={1} /> PLACEMENT CELL</div>
             <div className="flex items-center gap-2"><FileText size={16} strokeWidth={1} /> CAREER SERVICES</div>

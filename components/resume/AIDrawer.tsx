@@ -143,7 +143,7 @@ export function AIDrawer({
                         initial={{ opacity: 0, scale: 0.95, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         className={cn(
-                          "flex gap-4 max-w-[85%]",
+                          "flex gap-4 max-w-[90%] md:max-w-[700px]",
                           msg.role === "user" ? "ml-auto flex-row-reverse" : ""
                         )}
                       >
@@ -161,20 +161,19 @@ export function AIDrawer({
                           )}>
                             {msg.role === "ai" ? (
                               <ReactMarkdown 
-                                remarkPlugins={[remarkGfm, remarkBreaks]}
+                                remarkPlugins={[remarkGfm]}
                                 components={{
-                                  p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed">{children}</p>,
-                                  ul: ({ children }) => <ul className="list-disc ml-5 mb-3 space-y-1.5">{children}</ul>,
-                                  ol: ({ children }) => <ol className="list-decimal ml-5 mb-3 space-y-1.5">{children}</ol>,
-                                  li: ({ children }) => <li className="marker:text-primary/40 pl-1">{children}</li>,
+                                  p: ({ children }) => <p className="mb-4 last:mb-0 leading-relaxed text-slate-700 dark:text-slate-300">{children}</p>,
+                                  ul: ({ children }) => <ul className="list-disc ml-5 mb-4 space-y-2">{children}</ul>,
+                                  ol: ({ children }) => <ol className="list-decimal ml-5 mb-4 space-y-2">{children}</ol>,
+                                  li: ({ children }) => <li className="pl-1">{children}</li>,
                                   code: ({ children }) => <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[12px] font-mono font-medium">{children}</code>,
                                   strong: ({ children }) => <strong className="font-bold text-slate-900 dark:text-slate-100">{children}</strong>,
-                                  h1: ({ children }) => <h1 className="text-lg font-bold mt-4 mb-2">{children}</h1>,
-                                  h2: ({ children }) => <h2 className="text-base font-bold mt-4 mb-2">{children}</h2>,
-                                  h3: ({ children }) => <h3 className="text-sm font-bold mt-3 mb-1">{children}</h3>,
-                                  h4: ({ children }) => <h4 className="text-sm font-bold mt-3 mb-1">{children}</h4>,
+                                  h1: ({ children }) => <h1 className="text-xl font-bold mt-6 mb-3 border-b pb-2">{children}</h1>,
+                                  h2: ({ children }) => <h2 className="text-lg font-bold mt-5 mb-2">{children}</h2>,
+                                  h3: ({ children }) => <h3 className="text-md font-bold mt-4 mb-2">{children}</h3>,
                                   table: ({ children }) => (
-                                    <div className="overflow-x-auto my-4 rounded-xl border border-border/60">
+                                    <div className="overflow-x-auto my-4 rounded-xl border border-border/60 shadow-sm">
                                       <table className="w-full text-xs text-left border-collapse">{children}</table>
                                     </div>
                                   ),
@@ -184,12 +183,9 @@ export function AIDrawer({
                                 }}
                               >
                                 {msg.content
-                                  .replace(/([^\n])(#{1,6}\s)/g, '$1\n\n$2') // Headers jammed with text
-                                  .replace(/([^\n])(\s?[*+-]\s)/g, '$1\n\n$2') // Unordered lists jammed
-                                  .replace(/([^\n])(\s?\d+\.\s)/g, '$1\n\n$2') // Numbered lists jammed
-                                  .replace(/([^\n])(```)/g, '$1\n\n$2') // Code blocks jammed with text
-                                  .replace(/(```[a-z]*)([^\n\s])/g, '$1\n$2') // Text jammed inside code block start
-                                  .replace(/([^\n])(\n\|)/g, '$1\n\n$2') // Tables jammed
+                                  .replace(/([^\n])(#{1,6}\s)/g, '$1\n\n$2') // Header needs newline
+                                  .replace(/([^\n])(\n[*+-]\s)/g, '$1\n\n$2') // List needs block newline
+                                  .replace(/([^\n])(\n\d+\.\s)/g, '$1\n\n$2') // Numbered list needs block newline
                                 }
                               </ReactMarkdown>
                             ) : (

@@ -175,6 +175,8 @@ export default function ResumeEditorPage() {
     });
   };
 
+  const [mobileView, setMobileView] = useState<"editor" | "preview">("editor");
+
   return (
     <div className="h-full flex flex-col overflow-hidden relative bg-background">
       <EditorHeader 
@@ -186,14 +188,39 @@ export default function ResumeEditorPage() {
         title="Institutional Technical Resume"
       />
 
+      {/* Mobile View Switcher */}
+      <div className="flex md:hidden border-b border-border bg-slate-50 dark:bg-slate-900/50 p-1">
+         <button 
+           onClick={() => setMobileView("editor")}
+           className={cn(
+             "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+             mobileView === "editor" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-muted-foreground"
+           )}
+         >
+           Editor
+         </button>
+         <button 
+           onClick={() => setMobileView("preview")}
+           className={cn(
+             "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+             mobileView === "preview" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-muted-foreground"
+           )}
+         >
+           Preview
+         </button>
+      </div>
+
       <main className={cn(
-        "flex-1 flex min-h-0 bg-slate-50/30 dark:bg-black/20",
+        "flex-1 flex flex-col md:flex-row min-h-0 bg-slate-50/30 dark:bg-black/20",
         isResizing && "select-none"
       )}>
         {/* Left Pane: Editor */}
         <div 
-          className="border-r border-border bg-background flex flex-col relative overflow-hidden h-full"
-          style={{ width: `${leftWidth}%` }}
+          className={cn(
+            "border-r border-border bg-background flex flex-col relative overflow-hidden h-full transition-all duration-300",
+            mobileView === "editor" ? "flex" : "hidden md:flex"
+          )}
+          style={{ width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : `${leftWidth}%` }}
         >
           <div className="flex-1 overflow-hidden relative h-full">
             {view === "code" ? (
@@ -229,7 +256,7 @@ export default function ResumeEditorPage() {
                 }}
               />
             ) : (
-              <div className="h-full flex items-center justify-center p-20 text-center">
+              <div className="h-full flex items-center justify-center p-10 md:p-20 text-center">
                  <div className="space-y-4">
                     <div className="w-16 h-16 rounded-3xl bg-primary/5 flex items-center justify-center text-primary mx-auto">
                        <FileText size={32} strokeWidth={1} />
@@ -244,11 +271,11 @@ export default function ResumeEditorPage() {
           </div>
         </div>
 
-        {/* Resizable Divider */}
+        {/* Resizable Divider - Hidden on Mobile */}
         <div 
           onMouseDown={() => setIsResizing(true)}
           className={cn(
-            "w-1 group relative cursor-col-resize hover:bg-primary/30 transition-colors z-10 flex items-center justify-center",
+            "hidden md:flex w-1 group relative cursor-col-resize hover:bg-primary/30 transition-colors z-10 items-center justify-center",
             isResizing && "bg-primary/50"
           )}
         >
@@ -272,9 +299,12 @@ export default function ResumeEditorPage() {
         </div>
 
         {/* Right Pane: Preview */}
-        <div className="flex-1 flex flex-col bg-slate-100/50 dark:bg-slate-900/40 relative overflow-hidden">
+        <div className={cn(
+          "flex-1 flex flex-col bg-slate-100/50 dark:bg-slate-900/40 relative overflow-hidden transition-all duration-300",
+          mobileView === "preview" ? "flex" : "hidden md:flex"
+        )}>
           {/* Preview Toolbar */}
-          <div className="h-12 border-b border-border/50 bg-white/50 dark:bg-slate-800/30 backdrop-blur-md flex items-center justify-between px-4">
+          <div className="h-12 border-b border-border/50 bg-white/50 dark:bg-slate-800/30 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10">
              <div className="flex items-center gap-2">
                 <button 
                   onClick={handleCompile}
@@ -289,7 +319,7 @@ export default function ResumeEditorPage() {
                   Recompile
                 </button>
              </div>
-             <div className="flex items-center gap-4 text-muted-foreground">
+             <div className="hidden sm:flex items-center gap-4 text-muted-foreground">
                 <div className="text-[10px] font-bold uppercase tracking-widest">Page 1 / 1</div>
                 <div className="w-px h-4 bg-border/50" />
                 <div className="text-[10px] font-bold uppercase tracking-widest">85% Zoom</div>
@@ -297,17 +327,17 @@ export default function ResumeEditorPage() {
           </div>
 
           {/* PDF Container */}
-          <div className="flex-1 p-8 overflow-auto flex justify-center bg-slate-200/20 dark:bg-black/40">
+          <div className="flex-1 p-4 md:p-8 overflow-auto flex justify-center bg-slate-200/20 dark:bg-black/40">
             {pdfUrl ? (
               <iframe 
                 src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                className="w-full h-[1200px] max-w-3xl bg-white shadow-2xl rounded-sm"
+                className="w-full h-[600px] md:h-[1200px] max-w-3xl bg-white shadow-2xl rounded-sm"
                 title="Resume Preview"
               />
             ) : (
-              <div className="flex flex-col items-center justify-center text-center space-y-6 opacity-30">
-                 <div className="w-24 h-24 rounded-full border border-dashed border-primary/50 flex items-center justify-center">
-                    <FileText size={48} strokeWidth={0.5} className="text-primary" />
+              <div className="flex flex-col items-center justify-center text-center space-y-6 opacity-30 my-20">
+                 <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border border-dashed border-primary/50 flex items-center justify-center">
+                    <FileText strokeWidth={0.5} className="text-primary w-8 h-8 md:w-12 md:h-12" />
                  </div>
                  <div className="space-y-2">
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Awaiting Build</p>

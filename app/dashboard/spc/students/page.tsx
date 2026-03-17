@@ -1,10 +1,10 @@
 'use client'
 import { useState, useEffect, useCallback } from "react";
-import { Search, Filter, Eye, CheckCircle, XCircle, Clock, ArrowRight, Loader2, SlidersHorizontal } from "lucide-react";
+import { Search, Filter, Eye, Clock, Users, ArrowRight, Loader2, SlidersHorizontal, CheckCircle, XCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import { resumeApi } from "@/lib/api";
+import { adminApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -18,8 +18,8 @@ const DEPARTMENTS = [
   "Metallurgical & Materials Engineering",
 ];
 
-export default function FacultyValidatePage() {
-  const [resumes, setResumes] = useState<any[]>([]);
+export default function SPCStudentsPage() {
+  const [students, setStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -27,25 +27,23 @@ export default function FacultyValidatePage() {
   const [filters, setFilters] = useState({
     year: undefined as number | undefined,
     department: undefined as string | undefined,
-    group: undefined as string | undefined, // "engineering" or undefined
   });
 
   const debouncedSearch = useDebounce(search, 500);
 
-  const fetchQueue = useCallback(async (signal?: AbortSignal) => {
+  const fetchStudents = useCallback(async (signal?: AbortSignal) => {
     try {
       setIsLoading(true);
-      const data = await resumeApi.getValidationQueue({
+      const data = await adminApi.getStudents({
         search: debouncedSearch,
         year: filters.year,
-        department: filters.department,
-        group: filters.group
+        department: filters.department
       }, signal);
-      setResumes(data);
+      setStudents(data);
     } catch (err: any) {
       if (err.name === 'CanceledError' || err.name === 'AbortError') return;
       console.error(err);
-      toast.error("Failed to load validation queue");
+      toast.error("Failed to load students list");
     } finally {
       setIsLoading(false);
     }
@@ -53,32 +51,33 @@ export default function FacultyValidatePage() {
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchQueue(controller.signal);
+    fetchStudents(controller.signal);
     return () => controller.abort();
-  }, [fetchQueue]);
+  }, [fetchStudents]);
 
   const statusColors: Record<string, string> = {
     approved: "text-emerald-500 bg-emerald-500/10",
     submitted: "text-amber-500 bg-amber-500/10",
     rejected: "text-rose-500 bg-rose-500/10",
     draft: "text-slate-500 bg-slate-500/10",
+    not_created: "text-slate-400 bg-slate-400/5",
   };
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 py-8">
       {/* Page Header */}
       <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-display font-bold text-primary">Validation Queue</h1>
-        <p className="text-muted-foreground font-light text-lg">Review and approve student resumes for the placement season.</p>
+        <h1 className="text-4xl font-display font-bold text-primary">Student Tracking</h1>
+        <p className="text-muted-foreground font-light text-lg">Monitor student resume progress and validation status across all departments.</p>
       </div>
 
-      {/* Stats Overview (Static for now) */}
+      {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: "Pending", value: "12", icon: Clock, color: "text-amber-500" },
-          { label: "Approved Today", value: "45", icon: CheckCircle, color: "text-emerald-500" },
-          { label: "Avg. Score", value: "78%", icon: ArrowRight, color: "text-primary" },
-          { label: "Flagged", value: "3", icon: XCircle, color: "text-rose-500" },
+          { label: "Total Students", value: students.length > 0 ? "248" : "0", icon: Users, color: "text-primary" },
+          { label: "Validated", value: students.length > 0 ? "156" : "0", icon: CheckCircle, color: "text-emerald-500" },
+          { label: "Pending", value: students.length > 0 ? "42" : "0", icon: Clock, color: "text-amber-500" },
+          { label: "Not Started", value: students.length > 0 ? "50" : "0", icon: XCircle, color: "text-slate-400" },
         ].map((stat, i) => (
           <div key={i} className="nm-flat p-6 rounded-3xl flex items-center justify-between">
             <div className="space-y-1">
@@ -92,7 +91,7 @@ export default function FacultyValidatePage() {
         ))}
       </div>
 
-      {/* Table Section */}
+      {/* Tracking Section */}
       <div className="nm-flat rounded-[3rem] p-8 space-y-8 relative">
         <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
           <div className="w-full md:w-96 nm-inset px-6 py-3 rounded-2xl flex items-center gap-4">
@@ -109,8 +108,8 @@ export default function FacultyValidatePage() {
              <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={cn(
-                "nm-convex px-6 py-3 rounded-2xl flex items-center gap-2 text-sm transition-all",
-                (filters.year || filters.department || filters.group) ? "text-primary nm-inset" : "text-muted-foreground hover:nm-inset"
+                "nm-convex px-6 py-3 rounded-2xl flex items-center gap-2 text-sm transition-all h-12",
+                (filters.year || filters.department) ? "text-primary nm-inset" : "text-muted-foreground hover:nm-inset"
               )}
              >
                <Filter size={18} />
@@ -218,7 +217,7 @@ export default function FacultyValidatePage() {
 
                       <div className="flex justify-between items-center pt-4 border-t border-border/10">
                         <button 
-                          onClick={() => setFilters({ year: undefined, department: undefined, group: undefined })}
+                          onClick={() => setFilters({ year: undefined, department: undefined })}
                           className="text-[10px] text-muted-foreground hover:text-primary font-bold uppercase tracking-wider"
                         >
                           Reset
@@ -234,22 +233,18 @@ export default function FacultyValidatePage() {
                   </>
                 )}
               </AnimatePresence>
-
-             <button className="nm-primary px-8 rounded-2xl text-xs sm:text-sm transition-all h-12 shadow-lg">
-               Bulk Approve
-             </button>
           </div>
         </div>
 
         {isLoading ? (
           <div className="h-64 flex flex-col items-center justify-center gap-4">
             <Loader2 className="animate-spin text-slate-200" size={32} />
-            <p className="text-xs text-slate-300 font-light">Loading documents...</p>
+            <p className="text-xs text-slate-300 font-light">Loading students...</p>
           </div>
-        ) : resumes.length === 0 ? (
+        ) : students.length === 0 ? (
           <div className="h-64 flex flex-col items-center justify-center gap-4 opacity-40">
-            <Clock size={48} strokeWidth={0.5} />
-            <p className="text-sm font-light">No resumes awaiting validation</p>
+            <Users size={48} strokeWidth={0.5} />
+            <p className="text-sm font-light">No students found</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -257,16 +252,16 @@ export default function FacultyValidatePage() {
               <thead>
                 <tr className="text-muted-foreground/50 text-[10px] uppercase tracking-[0.2em] font-bold">
                   <th className="px-6 py-2">Student</th>
-                  <th className="px-6 py-2">Details</th>
-                  <th className="px-6 py-2 text-center">AI Score</th>
+                  <th className="px-6 py-2">Department</th>
+                  <th className="px-6 py-2 text-center">Score</th>
                   <th className="px-6 py-2">Status</th>
-                  <th className="px-6 py-2 text-right">Actions</th>
+                  <th className="px-6 py-2 text-right">Action</th>
                 </tr>
               </thead>
               <tbody>
-                {resumes.map((item, i) => (
+                {students.map((student, i) => (
                   <motion.tr 
-                    key={item.id}
+                    key={student.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: i * 0.05 }}
@@ -274,43 +269,40 @@ export default function FacultyValidatePage() {
                   >
                     <td className="px-6 py-5 rounded-l-[1.5rem]">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full nm-inset flex items-center justify-center text-primary font-bold text-xs">
-                          {item.studentName?.split(' ').map((n: string) => n[0]).join('')}
+                        <div className="w-10 h-10 rounded-full nm-inset flex items-center justify-center text-primary font-bold text-xs uppercase">
+                          {student.name?.split(' ').map((n: string) => n[0]).join('')}
                         </div>
                         <div>
-                          <p className="font-semibold text-sm">{item.studentName}</p>
-                          <p className="text-[10px] text-muted-foreground">{item.studentEmail}</p>
+                          <p className="font-semibold text-sm">{student.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{student.email}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <div className="space-y-1">
-                        <p className="text-xs font-medium">{item.type} Resume</p>
-                        <p className="text-[10px] text-muted-foreground">{item.department}</p>
+                        <p className="text-xs font-medium">{student.department}</p>
+                        <p className="text-[10px] text-muted-foreground">{student.year}rd Year</p>
                       </div>
                     </td>
                     <td className="px-6 py-5 text-center">
-                      <span className="text-lg font-display font-medium text-primary">{item.score}%</span>
+                      <span className="text-lg font-display font-medium text-primary">
+                        {student.resumeScore > 0 ? `${student.resumeScore}%` : '-'}
+                      </span>
                     </td>
                     <td className="px-6 py-5 text-sm">
                       <span className={cn(
                         "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                        statusColors[item.status]
+                        statusColors[student.status] || statusColors.not_created
                       )}>
-                        {item.status}
+                        {student.status.replace('_', ' ')}
                       </span>
                     </td>
                     <td className="px-6 py-5 text-right rounded-r-[1.5rem]">
-                      <div className="flex justify-end gap-3 translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
-                        <Link href={`/dashboard/faculty/validate/${item.id}`}>
-                          <button className="nm-convex p-2 rounded-xl text-primary hover:nm-inset transition-all" title="Review">
+                       <Link href={`/dashboard/faculty/validate/`}>
+                          <button className="nm-convex p-3 rounded-xl text-primary hover:nm-inset transition-all" title="View Student Profile">
                             <Eye size={18} />
                           </button>
                         </Link>
-                        <button className="nm-convex p-2 rounded-xl text-emerald-500 hover:nm-inset transition-all" title="Quick Approve">
-                          <CheckCircle size={18} />
-                        </button>
-                      </div>
                     </td>
                   </motion.tr>
                 ))}
