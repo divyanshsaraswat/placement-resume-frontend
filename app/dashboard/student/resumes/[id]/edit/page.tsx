@@ -24,6 +24,10 @@ export default function ResumeEditorPage() {
   const [view, setView] = useState<"code" | "visual">("code");
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [score, setScore] = useState<number | null>(null);
+  const [impactFeedback, setImpactFeedback] = useState<string | null>(null);
+  const [atsFeedback, setAtsFeedback] = useState<string | null>(null);
 
   const [leftWidth, setLeftWidth] = useState(60); // percentage
   const [isResizing, setIsResizing] = useState(false);
@@ -94,13 +98,21 @@ export default function ResumeEditorPage() {
   };
 
   const handleAnalyze = async () => {
+    setIsAIOpen(true);
+    setAiError(null);
+    setSuggestions([]);
+    setScore(null);
+    setImpactFeedback(null);
+    setAtsFeedback(null);
     try {
       setIsAnalyzing(true);
       const data = await resumeApi.getSuggestions(code);
-      setSuggestions(data || []);
-      setIsAIOpen(true); // Automatically open drawer for review
+      setSuggestions(data.improvement_suggestions || []);
+      setScore(data.score || null);
+      setImpactFeedback(data.impact_feedback || null);
+      setAtsFeedback(data.ats_feedback || null);
     } catch (err) {
-      toast.error("AI node unreachable");
+      setAiError("Institutional AI node is temporarily unreachable. Please ensure you're connected to the campus network.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -311,6 +323,12 @@ export default function ResumeEditorPage() {
         isOpen={isAIOpen}
         onClose={() => setIsAIOpen(false)}
         suggestions={suggestions}
+        score={score}
+        impactFeedback={impactFeedback}
+        atsFeedback={atsFeedback}
+        isLoading={isAnalyzing}
+        error={aiError}
+        onRetry={handleAnalyze}
       />
     </div>
   );

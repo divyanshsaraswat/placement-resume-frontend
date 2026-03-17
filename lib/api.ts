@@ -7,6 +7,7 @@ const api = axios.create({
   headers: {
     "Content-Type": "application/json",
   },
+  timeout: 120000, // 120 seconds
 });
 
 let authToken: string | null = null;
@@ -82,7 +83,40 @@ export const resumeApi = {
   },
   getSuggestions: async (content: string, signal?: AbortSignal) => {
     const response = await api.post("/ai/score-resume", { resume_text: content }, { signal });
-    return response.data.improvement_suggestions;
+    return response.data;
+  },
+  streamChat: async (messages: { role: string; content: string }[], onChunk: (chunk: string) => void) => {
+    const response = await fetch(`${API_BASE_URL}/ai/chat/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+      },
+      body: JSON.stringify({ messages }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to stream chat");
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) return;
+
+    const decoder = new TextDecoder();
+    let buffer = "";
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const parts = buffer.split("\n\n");
+      buffer = parts.pop() || ""; 
+      for (const part of parts) {
+        const line = part.trim();
+        if (line.startsWith("data: ")) {
+          onChunk(line.slice(6));
+        }
+      }
+    }
   },
 };
 

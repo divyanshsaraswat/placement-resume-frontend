@@ -47,10 +47,13 @@ export default function DashboardLayout({
       <Sidebar />
       <main className="flex-1 min-w-0 flex flex-col relative h-full">
         {!isEditorPage && <DashboardHeader />}
-        <div className={cn(
-          "flex-1 min-h-0 w-full",
-          !isEditorPage ? "overflow-y-auto overflow-x-hidden p-8" : "h-full"
-        )}>
+        <div 
+          data-lenis-prevent
+          className={cn(
+            "flex-1 min-h-0 w-full",
+            !isEditorPage ? "overflow-y-auto overflow-x-hidden p-8" : "h-full"
+          )}
+        >
           <motion.div 
             key={pathname}
             initial={{ opacity: 0, y: 15 }}
