@@ -1,23 +1,9 @@
 "use client";
 
 import { useAuth } from "@/context/auth-context";
-import { redirect } from "next/navigation";
-import { useEffect } from "react";
 
 export default function DashboardPage() {
-  const { user, isAuthenticated, isLoading } = useAuth();
-
-  useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated) {
-        redirect("/login");
-      } else {
-        // Redirect to role-specific dashboard if at root /dashboard
-        // For now, let's just show a welcome card or redirect
-        // redirect(`/dashboard/${user?.role}`); 
-      }
-    }
-  }, [isAuthenticated, isLoading, user]);
+  const { user } = useAuth();
 
   return (
     <div className="space-y-8">

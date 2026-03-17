@@ -2,16 +2,18 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { User, AuthState } from "@/types/auth";
-import { authApi } from "@/lib/api";
+import { authApi, setAuthToken } from "@/lib/api";
+import { useSession, signIn, signOut } from "next-auth/react";
 
 interface AuthContextType extends AuthState {
-  loginWithGoogle: (token: string) => Promise<void>;
+  loginWithGoogle: () => Promise<void>;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession();
   const [state, setState] = useState<AuthState>({
     user: null,
     isAuthenticated: false,
@@ -19,72 +21,73 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   });
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const token = localStorage.getItem("token");
-      if (token) {
+    const controller = new AbortController();
+    
+    // Sync the local API token with the NextAuth session
+    if ((session as any)?.accessToken) {
+      setAuthToken((session as any).accessToken as string);
+    } else if (status === "unauthenticated") {
+      setAuthToken(null);
+    }
+
+    const syncAuth = async () => {
+      if (status === "loading") return;
+
+      if (status === "authenticated" && session) {
+        // Prevent redundant fetching if user data already matches session email
+        if (state.user?.email === session.user?.email && !state.isLoading && state.isAuthenticated) {
+          return;
+        }
+
         try {
-          const userData = await authApi.getMe();
+          // If we need extra data from our backend, we call getMe()
+          const userData = await authApi.getMe(controller.signal);
+          const user: User = {
+            id: userData._id || userData.id,
+            name: userData.name,
+            email: userData.email,
+            role: userData.role,
+            isSuperadmin: userData.role === "admin",
+            department: userData.department,
+            avatar: userData.avatar,
+          };
+          
           setState({
-            user: {
-              id: userData._id || userData.id,
-              name: userData.name,
-              email: userData.email,
-              role: userData.role,
-              isSuperadmin: userData.role === "admin",
-              department: userData.department,
-              avatar: userData.avatar,
-            },
+            user,
             isAuthenticated: true,
             isLoading: false,
           });
-        } catch (err) {
-          console.error("Session restoration failed", err);
-          logout();
+        } catch (err: any) {
+          if (err.name === 'CanceledError' || err.name === 'AbortError') {
+            return; // Ignore intentional cancellations
+          }
+          console.error("Backend auth sync failed", err);
+          // Only sign out if the error is actually auth-related
+          // signOut();
+          setState((s) => ({ ...s, isLoading: false }));
         }
-      } else {
-        setState((s) => ({ ...s, isLoading: false }));
+      } else if (status === "unauthenticated") {
+        setState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
       }
     };
-    checkAuth();
-  }, []);
 
-  const loginWithGoogle = async (token: string) => {
-    try {
-      setState((s) => ({ ...s, isLoading: true }));
-      const { access_token } = await authApi.loginGoogle(token);
-      localStorage.setItem("token", access_token);
-      
-      const userData = await authApi.getMe();
-      const user: User = {
-        id: userData._id || userData.id,
-        name: userData.name,
-        email: userData.email,
-        role: userData.role,
-        isSuperadmin: userData.role === "admin",
-        department: userData.department,
-        avatar: userData.avatar,
-      };
-      
-      localStorage.setItem("auth_user", JSON.stringify(user));
-      setState({
-        user,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (err) {
-      setState((s) => ({ ...s, isLoading: false }));
-      throw err;
-    }
+    syncAuth();
+
+    return () => {
+      controller.abort();
+    };
+  }, [session, status]);
+
+  const loginWithGoogle = async () => {
+    await signIn("google");
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("auth_user");
-    setState({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
+    signOut();
   };
 
   return (

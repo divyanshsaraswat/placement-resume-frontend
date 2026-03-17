@@ -2,7 +2,7 @@
 
 import { motion, Variants } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight, Sparkles, Feather, Shield, Zap } from "lucide-react";
+import { ArrowRight, Sparkles, GraduationCap, FileText, Shield } from "lucide-react";
 import Link from "next/link";
 
 export function Hero() {
@@ -11,91 +11,103 @@ export function Hero() {
     visible: {
       opacity: 1,
       transition: {
-        staggerChildren: 0.2,
-        delayChildren: 0.3,
+        staggerChildren: 0.1,
+        delayChildren: 0.2,
       },
     },
   };
 
   const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 30 },
     visible: { 
       opacity: 1, 
       y: 0,
-      transition: { duration: 1.2, ease: "easeOut" }
+      transition: { duration: 0.8, ease: [0.22, 1, 0.36, 1] }
     },
   };
 
+  const dashboardPath = "/neo_brutalist_dashboard_mockup_1773762788312.png"; // Generated path
+
   return (
-    <section className="relative min-h-[85vh] pt-20 sm:pt-28 pb-12 sm:pb-20 px-6 flex flex-col items-center justify-center overflow-hidden">
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="max-w-5xl w-full text-center space-y-8 sm:space-y-12 relative z-10"
-      >
-        <motion.div variants={itemVariants} className="flex justify-center">
-          <Badge variant="outline" className="nm-flat px-4 sm:px-5 py-1.5 sm:py-2 rounded-full border-none bg-background text-primary gap-2 font-medium tracking-wide text-[10px] sm:text-xs">
-            <Feather size={12} className="text-primary/60 sm:size-3.5" />
-            <span className="text-primary/80">Neumorphic Intelligence for Placement</span>
-          </Badge>
-        </motion.div>
-
-        <motion.h1 
-          variants={itemVariants}
-          className="text-4xl sm:text-6xl md:text-8xl lg:text-9xl font-display font-light tracking-tight leading-[1.1] text-balance mb-4 sm:mb-6 text-soft-glow"
+    <section className="relative min-h-screen pt-44 pb-20 flex flex-col justify-center items-center">
+      <div className="container mx-auto px-6 relative z-10">
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="visible"
+          className="flex flex-col items-center text-center space-y-12"
         >
-          Drafting the <br />
-          <span className="font-semibold text-primary">Future of Career</span>
-        </motion.h1>
+          {/* Badge */}
+          <motion.div variants={itemVariants}>
+            <div className="px-4 py-1 rounded-full border border-slate-50 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/50 text-primary text-[10px] font-medium tracking-widest uppercase">
+              MNIT Intelligence v2.0
+            </div>
+          </motion.div>
 
-        <motion.p 
-          variants={itemVariants}
-          className="max-w-3xl mx-auto text-base sm:text-lg md:text-2xl text-muted-foreground font-light leading-relaxed tracking-tight px-4 opacity-80"
-        >
-          Elevate your professional narrative with a tactile, soft, and high-performance placement ecosystem. AI-crafted LaTeX resumes with a touch of modern luxury.
-        </motion.p>
+          {/* Headline */}
+          <motion.h1 
+            variants={itemVariants}
+            className="text-6xl md:text-8xl font-semibold tracking-tight leading-[1] max-w-4xl text-slate-800 dark:text-slate-100"
+          >
+            Refined document <br />
+            <span className="text-primary/70">Intelligence.</span>
+          </motion.h1>
 
-        <motion.div variants={itemVariants} className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-6 pt-4 sm:pt-6">
-          <Link 
-            href="/login"
-            className="w-full sm:w-auto nm-primary h-14 sm:h-16 px-10 sm:px-12 rounded-full text-base sm:text-lg transition-all group inline-flex items-center justify-center"
+          {/* Subheadline */}
+          <motion.p 
+            variants={itemVariants} 
+            className="max-w-xl text-lg text-slate-400 font-light leading-relaxed"
           >
-            Start Your Journey
-            <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" />
-          </Link>
-          <Link 
-            href="#features"
-            className="w-full sm:w-auto nm-convex bg-background text-primary h-14 sm:h-16 px-10 sm:px-12 rounded-full text-base sm:text-lg font-medium hover:nm-inset transition-all inline-flex items-center justify-center border border-primary/10"
+            An institutional ecosystem engineered for technical precision. 
+            AI-validated resumes for the next generation of engineers.
+          </motion.p>
+
+          {/* CTAs */}
+          <motion.div variants={itemVariants} className="flex items-center gap-8 pt-4">
+            <Link 
+              href="/login"
+              className="px-8 py-3 bg-primary text-white rounded-full text-sm font-medium hover:scale-[1.02] transition-all"
+            >
+              Get Started
+            </Link>
+            <Link 
+              href="/demo"
+              className="text-sm font-medium text-slate-400 hover:text-primary transition-colors"
+            >
+              View Demo →
+            </Link>
+          </motion.div>
+
+          {/* Dashboard Preview */}
+          <motion.div 
+            variants={itemVariants}
+            className="w-full max-w-5xl mt-24 relative"
           >
-            Explore Aesthetics
-          </Link>
+            <div className="relative rounded-3xl overflow-hidden bg-slate-50 dark:bg-slate-900 p-1">
+               <motion.div 
+                 className="rounded-2xl overflow-hidden"
+                 whileHover={{ scale: 1.005 }}
+                 transition={{ duration: 0.8, ease: "easeOut" }}
+               >
+                 <img 
+                   src={dashboardPath} 
+                   alt="Placement Dashboard" 
+                   className="w-full h-auto opacity-90 hover:opacity-100 transition-opacity"
+                 />
+               </motion.div>
+            </div>
+          </motion.div>
         </motion.div>
-      </motion.div>
+      </div>
 
-      {/* Neumorphic Feature Bits */}
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.5, duration: 2 }}
-        className="mt-16 sm:mt-24 grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-12 max-w-6xl w-full px-4"
-      >
-        {[
-          { icon: Zap, label: "Instant Reasoning", sub: "Llama-3 powered logic" },
-          { icon: Shield, label: "Vault Security", sub: "MNIT Domain SSO Protected" },
-          { icon: Sparkles, label: "Tactile LaTeX", sub: "Premium document authorship" }
-        ].map((item, i) => (
-          <div key={i} className="nm-flat bg-background p-6 rounded-3xl flex flex-col items-center space-y-2 sm:space-y-3 text-center transition-all hover:nm-convex">
-            <div className="nm-inset w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-background flex items-center justify-center text-primary/60">
-              <item.icon size={16} className="sm:size-[18px]" />
-            </div>
-            <div>
-              <p className="font-display font-semibold text-primary/80 tracking-tight text-sm sm:text-base">{item.label}</p>
-              <p className="text-xs sm:text-sm text-muted-foreground/60">{item.sub}</p>
-            </div>
-          </div>
-        ))}
-      </motion.div>
+      {/* Institutional Banner */}
+      <div className="mt-32 w-full max-w-4xl mx-auto px-6">
+         <div className="flex flex-wrap justify-between items-center gap-8 opacity-20 text-[10px] uppercase tracking-[0.4em] font-medium text-slate-400">
+            <div className="flex items-center gap-2"><GraduationCap size={16} strokeWidth={1} /> MNIT JAIPUR</div>
+            <div className="flex items-center gap-2"><Shield size={16} strokeWidth={1} /> PLACEMENT CELL</div>
+            <div className="flex items-center gap-2"><FileText size={16} strokeWidth={1} /> CAREER SERVICES</div>
+         </div>
+      </div>
     </section>
   );
 }

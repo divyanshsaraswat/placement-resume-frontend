@@ -29,32 +29,32 @@ const faqs = [
 
 export function FAQ() {
   return (
-    <section id="faq" className="py-32 px-6 bg-primary/[0.02]">
-      <div className="max-w-3xl mx-auto space-y-16">
-        <div className="text-center space-y-4">
+    <section id="faq" className="py-48 px-6">
+      <div className="max-w-4xl mx-auto space-y-24">
+        <div className="text-center">
           <motion.h2 
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-3xl sm:text-4xl md:text-5xl font-display font-light tracking-tight text-primary/90"
+            className="text-4xl md:text-5xl font-semibold tracking-tight text-slate-800 dark:text-slate-100"
           >
-            Guided <span className="italic">Clarity</span>
+            System <span className="text-primary/70">Clarity.</span>
           </motion.h2>
         </div>
 
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.2, duration: 0.8 }}
         >
-          <Accordion className="w-full space-y-6">
+          <Accordion type="single" collapsible className="w-full space-y-2">
             {faqs.map((faq, i) => (
-              <AccordionItem key={i} value={`item-${i}`} className="nm-flat bg-background px-5 sm:px-8 rounded-2xl sm:rounded-3xl border-none transition-all hover:nm-convex">
-                <AccordionTrigger className="text-left font-display font-medium text-base sm:text-lg text-primary/70 hover:text-primary transition-colors hover:no-underline py-4 sm:py-6">
+              <AccordionItem key={i} value={`item-${i}`} className="border-b border-slate-50 dark:border-slate-900 px-0 transition-opacity hover:opacity-80">
+                <AccordionTrigger className="text-left py-8 text-base font-medium text-slate-700 dark:text-slate-200">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground/80 text-sm sm:text-base leading-relaxed font-light pb-4 sm:pb-6">
+                <AccordionContent className="text-slate-400 text-base font-light leading-relaxed pb-8">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>

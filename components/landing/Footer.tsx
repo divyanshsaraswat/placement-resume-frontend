@@ -3,55 +3,54 @@ import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="py-24 px-6 bg-background border-t border-white/5">
-      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12 sm:gap-16">
-        <div className="col-span-1 md:col-span-2 space-y-8">
-          <div className="flex items-center gap-3 text-primary">
-            <div className="nm-flat p-2 rounded-xl">
-              <Sparkles size={24} />
+    <footer className="py-24 px-6 mt-32">
+      <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-16 border-t border-slate-50 dark:border-slate-900 pt-24">
+        <div className="col-span-1 md:col-span-2 space-y-10">
+          <div className="flex items-center gap-3 text-slate-800 dark:text-slate-100">
+            <div className="text-primary">
+              <Sparkles size={24} strokeWidth={1} />
             </div>
-            <span className="text-2xl font-display font-semibold tracking-tight">MNIT Intelligence</span>
+            <span className="text-xl font-semibold tracking-tight">Matrix</span>
           </div>
-          <p className="text-lg text-muted-foreground/70 font-light leading-relaxed max-w-sm">
-            Forging a tactile, premium future for student placements. Soft, intuitive, and high-performance.
+          <p className="text-base text-slate-400 font-light leading-relaxed max-w-sm">
+            Institutional document intelligence engine for student recruitment and technical authoring.
           </p>
           <div className="flex items-center gap-6">
             {[Github, Twitter, Linkedin].map((Icon, i) => (
               <Link 
                 key={i} 
                 href="#" 
-                className="nm-convex p-3 rounded-full text-primary/60 hover:nm-inset hover:text-primary transition-all duration-300"
+                className="text-slate-300 hover:text-primary transition-colors"
               >
-                <Icon size={20} />
+                <Icon size={18} strokeWidth={1} />
               </Link>
             ))}
           </div>
         </div>
 
         <div className="space-y-6">
-          <h4 className="font-display font-semibold text-primary/80">Ecosystem</h4>
-          <ul className="space-y-3 text-muted-foreground/80 font-light">
-            <li><Link href="#features" className="hover:text-primary transition-colors">Aesthetics</Link></li>
-            <li><Link href="#how-it-works" className="hover:text-primary transition-colors">Intelligence</Link></li>
-            <li><Link href="/login" className="hover:text-primary transition-colors">Auth</Link></li>
+          <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-800 dark:text-slate-100">Platform</h4>
+          <ul className="space-y-3 text-sm text-slate-400 font-light">
+            <li><Link href="#why" className="hover:text-primary transition-colors">Why</Link></li>
+            <li><Link href="#features" className="hover:text-primary transition-colors">Features</Link></li>
+            <li><Link href="/login" className="hover:text-primary transition-colors">Institutional Login</Link></li>
           </ul>
         </div>
 
         <div className="space-y-6">
-          <h4 className="font-display font-semibold text-primary/80">Support</h4>
-          <ul className="space-y-3 text-muted-foreground/80 font-light">
+          <h4 className="text-xs font-semibold uppercase tracking-widest text-slate-800 dark:text-slate-100">Institutional</h4>
+          <ul className="space-y-3 text-sm text-slate-400 font-light">
             <li><Link href="#" className="hover:text-primary transition-colors">Documentation</Link></li>
-            <li><Link href="#" className="hover:text-primary transition-colors">LaTeX Guide</Link></li>
-            <li><Link href="#" className="hover:text-primary transition-colors">Contact</Link></li>
+            <li><Link href="#" className="hover:text-primary transition-colors">LaTeX Support</Link></li>
+            <li><Link href="#" className="hover:text-primary transition-colors">Privacy Policy</Link></li>
           </ul>
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto mt-20 p-8 nm-inset rounded-3xl flex flex-col md:flex-row justify-between items-center gap-4 text-sm text-muted-foreground/50">
-        <p>© 2024 MNIT Placement Portal. Tactile Excellence.</p>
+      <div className="max-w-6xl mx-auto mt-24 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase tracking-[0.2em] text-slate-300 font-light">
+        <p>© 2026 MNIT Matrix. All rights reserved.</p>
         <div className="flex items-center gap-8">
-          <Link href="#" className="hover:text-primary transition-colors">Privacy</Link>
-          <Link href="#" className="hover:text-primary transition-colors">Terms</Link>
+          <Link href="#" className="hover:text-primary transition-colors">Institutional Terms</Link>
         </div>
       </div>
     </footer>

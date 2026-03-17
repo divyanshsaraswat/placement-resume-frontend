@@ -9,21 +9,20 @@ export const metadata: Metadata = {
 
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/context/auth-context";
-import { GoogleOAuthProvider } from "@react-oauth/google";
 import { Toaster } from "sonner";
 import NextTopLoader from "nextjs-toploader";
+import { SmoothScroll } from "@/components/SmoothScroll";
+import { SessionProvider } from "next-auth/react";
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
-
   return (
-    <html lang="en" className="scroll-smooth" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <body className="antialiased selection:bg-accent selection:text-white">
-        <NextTopLoader 
+        <NextTopLoader
           color="var(--primary)"
           showSpinner={false}
           shadow="0 0 10px var(--primary),0 0 5px var(--primary)"
@@ -34,12 +33,14 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <GoogleOAuthProvider clientId={googleClientId}>
+          <SessionProvider>
             <AuthProvider>
-              {children}
+              <SmoothScroll>
+                {children}
+              </SmoothScroll>
               <Toaster position="bottom-right" richColors closeButton theme="dark" />
             </AuthProvider>
-          </GoogleOAuthProvider>
+          </SessionProvider>
         </ThemeProvider>
       </body>
     </html>

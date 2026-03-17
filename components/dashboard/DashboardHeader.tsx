@@ -9,45 +9,40 @@ export function DashboardHeader() {
   const { user, logout } = useAuth();
 
   return (
-    <header className="h-20 px-8 border-b border-white/5 flex items-center justify-between bg-background/50 backdrop-blur-md sticky top-0 z-40">
-      {/* Search Bar */}
-      <div className="hidden md:flex items-center gap-3 nm-inset px-4 py-2 rounded-2xl w-96 max-w-full">
-        <Search size={18} className="text-muted-foreground" />
-        <input 
-          type="text" 
-          placeholder="Search resumes, students..." 
-          className="bg-transparent border-none outline-none text-sm w-full placeholder:text-muted-foreground/50"
-        />
+    <header className="h-16 px-8 flex items-center justify-between bg-white dark:bg-[#020617] sticky top-0 z-40">
+      <div className="flex items-center gap-3">
+        {/* Minimalist Search Icon instead of bar */}
+        <button className="p-2 text-slate-300 hover:text-primary transition-colors">
+          <Search size={18} strokeWidth={1} />
+        </button>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-4">
         <ThemeToggle />
         
-        <button className="nm-convex p-2.5 rounded-xl text-muted-foreground hover:nm-inset transition-all relative">
-          <Bell size={20} />
-          <span className="absolute top-2 right-2 w-2 h-2 bg-primary rounded-full" />
+        <button className="p-2 text-slate-300 hover:text-primary transition-colors relative">
+          <Bell size={18} strokeWidth={1} />
+          <span className="absolute top-2 right-2 w-1.5 h-1.5 bg-primary rounded-full" />
         </button>
 
-        <div className="flex items-center gap-4 pl-6 border-l border-white/10">
-          <div className="text-right hidden sm:block">
-            <p className="text-sm font-semibold">{user?.name}</p>
-            <p className="text-xs text-muted-foreground uppercase tracking-widest">{user?.role}</p>
+        <div className="flex items-center gap-4 pl-4 border-l border-slate-50 dark:border-slate-900">
+          <div className="text-right hidden sm:block leading-tight">
+            <p className="text-xs font-medium text-slate-700 dark:text-slate-200">{user?.name}</p>
+            <p className="text-[10px] text-slate-400 font-light">{user?.role}</p>
           </div>
-          <div className="nm-flat p-1 rounded-full">
-            <div className="w-10 h-10 rounded-full nm-inset flex items-center justify-center overflow-hidden">
-               {user?.avatar ? (
-                 <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
-               ) : (
-                 <User size={20} className="text-muted-foreground" />
-               )}
-            </div>
+          <div className="w-8 h-8 rounded-full flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900">
+             {user?.avatar ? (
+               <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+             ) : (
+               <User size={16} strokeWidth={1} className="text-slate-300" />
+             )}
           </div>
           <button 
             onClick={logout}
-            className="nm-convex p-2.5 rounded-xl text-destructive hover:nm-inset transition-all"
+            className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
             title="Logout"
           >
-            <LogOut size={20} />
+            <LogOut size={18} strokeWidth={1} />
           </button>
         </div>
       </div>

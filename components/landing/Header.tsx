@@ -9,37 +9,43 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export function Header() {
   return (
     <motion.header 
-      initial={{ y: -20, opacity: 0 }}
+      initial={{ y: -100, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[90%] max-w-4xl"
+      className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-7xl px-4"
     >
-      <div className="nm-pill bg-background px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="nm-flat bg-background p-1.5 sm:p-2 rounded-xl text-primary">
-            <Sparkles size={18} className="sm:size-5" />
+      <div className="px-8 py-3 flex items-center justify-between gap-4 border border-slate-50 dark:border-slate-900 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-md rounded-full">
+        <div className="flex items-center gap-2 group cursor-pointer">
+          <div className="text-primary">
+            <Sparkles size={18} strokeWidth={1} />
           </div>
-          <span className="text-sm sm:text-lg font-display font-semibold tracking-tight text-primary whitespace-nowrap">MNIT Intelligence</span>
+          <span className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100 uppercase tracking-[0.2em]">Matrix</span>
         </div>
 
-        <nav className="hidden lg:flex items-center gap-8 text-sm font-medium text-muted-foreground/80">
-          <Link href="#features" className="hover:text-primary transition-colors">Aesthetics</Link>
-          <Link href="#how-it-works" className="hover:text-primary transition-colors">Intelligence</Link>
-          <Link href="#faq" className="hover:text-primary transition-colors">Queries</Link>
+        <nav className="hidden md:flex items-center gap-8">
+          {["Platform", "Features", "Security", "Institutional"].map((item) => (
+            <Link 
+              key={item}
+              href={`#${item.toLowerCase()}`} 
+              className="text-[10px] font-medium uppercase tracking-widest text-slate-400 hover:text-primary transition-colors"
+            >
+              {item}
+            </Link>
+          ))}
         </nav>
 
-        <div className="flex items-center gap-1.5 sm:gap-2">
+        <div className="flex items-center gap-6">
           <ThemeToggle />
           <Link 
-            href="/login" 
-            className="hidden sm:inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-primary/70 hover:nm-inset rounded-full transition-all"
+            href="/login"
+            className="text-[10px] font-medium uppercase tracking-widest text-slate-400 hover:text-primary transition-colors"
           >
-            Auth
+            Sign in
           </Link>
           <Link 
             href="/login"
-            className="nm-primary rounded-full px-4 sm:px-6 py-2 text-xs sm:text-sm transition-all"
+            className="px-5 py-2 bg-primary text-white rounded-full text-[10px] font-semibold uppercase tracking-widest hover:scale-[1.02] transition-all"
           >
-            Get Started
+            Join
           </Link>
         </div>
       </div>

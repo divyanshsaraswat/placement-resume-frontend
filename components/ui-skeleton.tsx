@@ -8,7 +8,7 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
   return (
     <div
       className={cn(
-        "animate-pulse nm-inset rounded-xl bg-muted/10",
+        "animate-pulse bg-muted/20 border-2 border-black/10 dark:border-white/10 rounded-lg",
         className
       )}
       {...props}
@@ -18,18 +18,18 @@ export function Skeleton({ className, ...props }: SkeletonProps) {
 
 export function CardSkeleton() {
   return (
-    <div className="nm-flat p-8 rounded-[2.5rem] space-y-6">
+    <div className="bg-background border-4 border-black dark:border-white p-8 rounded-xl shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] space-y-6">
       <div className="flex justify-between items-start">
-        <Skeleton className="w-12 h-12 rounded-xl" />
-        <Skeleton className="w-6 h-6 rounded-full" />
+        <Skeleton className="w-14 h-14 rounded-xl" />
+        <Skeleton className="w-8 h-8 rounded-lg" />
       </div>
-      <div className="space-y-3">
-        <Skeleton className="w-3/4 h-8" />
-        <Skeleton className="w-1/4 h-4" />
+      <div className="space-y-4">
+        <Skeleton className="w-3/4 h-10" />
+        <Skeleton className="w-1/2 h-6" />
       </div>
-      <div className="pt-4 border-t border-white/5 flex justify-between items-center">
-        <Skeleton className="w-16 h-10" />
-        <Skeleton className="w-20 h-10" />
+      <div className="pt-6 border-t-4 border-black flex justify-between items-center">
+        <Skeleton className="w-20 h-10 rounded-lg" />
+        <Skeleton className="w-24 h-10 rounded-lg" />
       </div>
     </div>
   );

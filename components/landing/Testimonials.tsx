@@ -26,44 +26,42 @@ const testimonials = [
 
 export function Testimonials() {
   return (
-    <section className="py-32 px-6 relative overflow-hidden">
-      <div className="max-w-6xl mx-auto space-y-20">
+    <section className="py-48 px-6">
+      <div className="max-w-6xl mx-auto space-y-32">
         <div className="text-center">
           <motion.h2 
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
             viewport={{ once: true }}
-            className="text-3xl sm:text-4xl md:text-6xl font-display font-light tracking-tight"
+            className="text-4xl md:text-5xl font-semibold tracking-tight text-slate-800 dark:text-slate-100"
           >
-            Voice of the <span className="text-primary italic">Aether</span>
+            Institutional <span className="text-primary/70">Voices.</span>
           </motion.h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-20">
           {testimonials.map((t, i) => (
             <motion.div
               key={i}
-              initial={{ opacity: 0, scale: 0.95 }}
-              whileInView={{ opacity: 1, scale: 1 }}
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.1, duration: 1 }}
-              className="relative nm-flat bg-background p-6 sm:p-10 rounded-[2.5rem] sm:rounded-[3rem] h-full flex flex-col justify-between hover:nm-convex transition-all duration-500"
+              transition={{ delay: i * 0.1, duration: 0.8 }}
+              className="flex flex-col space-y-8"
             >
-              <p className="text-lg sm:text-xl leading-relaxed font-light text-muted-foreground italic">
+              <p className="text-lg leading-relaxed font-light text-slate-400 italic">
                 "{t.content}"
               </p>
-              <div className="flex items-center gap-4 mt-6 sm:mt-8">
-                <div className="nm-inset p-1 rounded-full">
-                  <Avatar className="h-10 w-10 sm:h-12 sm:w-12 border-none">
-                    <AvatarImage src={t.avatar} />
-                    <AvatarFallback className="bg-primary/5 text-primary font-medium">
-                      {t.name.split(" ").map(n => n[0]).join("")}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                <div>
-                  <h4 className="font-display font-semibold text-primary/80">{t.name}</h4>
-                  <p className="text-sm text-muted-foreground/60">{t.role}</p>
+              <div className="flex items-center gap-4 pt-8 border-t border-slate-50 dark:border-slate-900">
+                <Avatar className="h-10 w-10 border-none shrink-0 filter grayscale opacity-60">
+                  <AvatarImage src={t.avatar} />
+                  <AvatarFallback className="bg-slate-100 text-slate-400 font-medium">
+                    {t.name.split(" ").map(n => n[0]).join("")}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="leading-tight">
+                  <h4 className="text-sm font-medium text-slate-700 dark:text-slate-200">{t.name}</h4>
+                  <p className="text-[10px] text-slate-400 font-light uppercase tracking-widest">{t.role}</p>
                 </div>
               </div>
             </motion.div>

@@ -1,113 +1,166 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
-import { mockResumes } from "@/types/resume";
-import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink } from "lucide-react";
+import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { resumeApi } from "@/lib/api";
+import { CreateResumeDialog } from "@/components/dashboard/CreateResumeDialog";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 
 export default function StudentResumesPage() {
   const { user } = useAuth();
-  const resumes = mockResumes[0].versions; // Mock user's resumes
+  const router = useRouter();
+  const [resumes, setResumes] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const statusColors = {
-    approved: "text-emerald-500 bg-emerald-500/10",
-    submitted: "text-amber-500 bg-amber-500/10",
-    rejected: "text-rose-500 bg-rose-500/10",
-    draft: "text-slate-500 bg-slate-500/10",
+  const fetchResumes = async (signal?: AbortSignal) => {
+    try {
+      setIsLoading(true);
+      const data = await resumeApi.getResumes(signal);
+      setResumes(data);
+    } catch (err: any) {
+      if (err.name === 'CanceledError' || err.name === 'AbortError') return;
+      console.error(err);
+      toast.error("Failed to load resumes");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const controller = new AbortController();
+    fetchResumes(controller.signal);
+    
+    return () => {
+      controller.abort();
+    };
+  }, []);
+
+  const handleCreateResume = async (type: string, template: string) => {
+    try {
+      const newResume = await resumeApi.createResume(type, template);
+      toast.success("Resume version initialized!");
+      router.push(`/dashboard/student/resumes/${newResume.id || newResume._id}/edit`);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create resume");
+    }
+  };
+
+  const statusColors: Record<string, string> = {
+    approved: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    submitted: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    rejected: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+    draft: "bg-slate-500/10 text-slate-600 border-slate-500/20",
   };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-10">
+    <div className="max-w-6xl mx-auto space-y-16 py-8">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+      <div className="flex justify-between items-end">
         <div className="space-y-1">
-          <h1 className="text-4xl font-display font-bold text-primary">Resume Pipeline</h1>
-          <p className="text-muted-foreground font-light">Manage your multiple resume versions and track validation progress.</p>
+          <h1 className="text-3xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Documents</h1>
+          <p className="text-sm text-slate-400 font-light">Your professional document pipeline and institutional status.</p>
         </div>
-        <button className="nm-primary h-14 px-8 rounded-2xl flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95 shadow-xl">
-          <Plus size={20} />
-          <span>New Resume</span>
+        <button 
+          onClick={() => setIsCreateOpen(true)}
+          className="px-6 py-2.5 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary/20 transition-all flex items-center gap-2"
+        >
+          <Plus size={18} />
+          <span>New Version</span>
         </button>
       </div>
 
       {/* Filters & Search */}
-      <div className="flex flex-col md:flex-row gap-6">
-        <div className="flex-1 nm-inset px-6 py-3 rounded-2xl flex items-center gap-4">
-          <Search size={18} className="text-muted-foreground" />
+      <div className="flex items-center gap-8 border-b border-slate-50 dark:border-slate-900 pb-4">
+        <div className="flex-1 flex items-center gap-3">
+          <Search size={16} className="text-slate-300" />
           <input 
             type="text" 
-            placeholder="Search resumes..." 
-            className="bg-transparent border-none outline-none w-full text-sm"
+            placeholder="Search documents..." 
+            className="bg-transparent border-none outline-none w-full text-sm font-light placeholder:text-slate-300"
           />
         </div>
-        <div className="flex gap-4">
-           <button className="nm-convex px-6 py-3 rounded-2xl flex items-center gap-2 text-sm text-muted-foreground hover:nm-inset transition-all">
-             <Filter size={18} />
-             Filter
-           </button>
-        </div>
+        <button className="text-sm font-medium text-slate-400 hover:text-primary transition-all flex items-center gap-2">
+          <Filter size={16} />
+          <span>Filter</span>
+        </button>
       </div>
 
       {/* Resumes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {resumes.map((resume, i) => (
-          <motion.div
-            key={resume.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: i * 0.1 }}
-            className="nm-flat p-8 rounded-[2.5rem] group hover:nm-convex transition-all cursor-pointer relative border border-white/5"
-          >
-            <div className="flex justify-between items-start mb-6">
-              <div className="nm-inset p-3 rounded-2xl text-primary">
-                <FileText size={24} />
-              </div>
-              <button className="text-muted-foreground/30 hover:text-primary transition-colors">
-                <MoreVertical size={20} />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-2xl font-semibold mb-2">{resume.type}</h3>
-                <span className={cn(
-                  "inline-flex px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider",
-                  statusColors[resume.status]
-                )}>
-                  {resume.status}
-                </span>
-              </div>
-
-              <div className="pt-4 border-t border-white/5 flex justify-between items-center">
-                <div className="space-y-1">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">AI Score</p>
-                  <p className="text-2xl font-display font-medium text-primary">
-                    {resume.score > 0 ? `${resume.score}%` : "---"}
-                  </p>
-                </div>
-                <div className="nm-inset px-4 py-2 rounded-xl text-[10px] font-bold text-muted-foreground/50">
-                   EDIT .TEX
-                </div>
-              </div>
-            </div>
-
-            <div className="absolute inset-x-8 bottom-8 transition-all opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0">
-               <div className="flex gap-2">
-                 <button className="flex-1 nm-convex h-10 rounded-xl text-xs font-medium text-primary flex items-center justify-center gap-2 hover:nm-inset transition-all">
-                   Preview <ExternalLink size={12} />
-                 </button>
-               </div>
-            </div>
-          </motion.div>
-        ))}
-
-        {/* Add New Card Slot */}
-        <div className="nm-inset p-8 rounded-[2.5rem] flex flex-col items-center justify-center gap-4 text-muted-foreground/20 border-2 border-dashed border-white/5 hover:border-primary/20 hover:text-primary/40 transition-all cursor-pointer">
-           <Plus size={48} strokeWidth={1} />
-           <p className="font-medium">Create Resume Version</p>
+      {isLoading ? (
+        <div className="h-64 flex flex-col items-center justify-center gap-4">
+          <Loader2 className="animate-spin text-slate-200" size={32} />
+          <p className="text-xs text-slate-300 font-light">Loading documents...</p>
         </div>
-      </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+          {resumes.map((resume, i) => {
+            const latestVersion = resume.versions[resume.versions.length - 1];
+            return (
+              <motion.div
+                key={resume.id || resume._id}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: i * 0.1 }}
+                className="group cursor-pointer space-y-4"
+                onClick={() => router.push(`/dashboard/student/resumes/${resume.id || resume._id}/edit`)}
+              >
+                <div className="aspect-[3/4] rounded-3xl bg-slate-50/50 dark:bg-slate-900/50 flex flex-col p-8 transition-all group-hover:bg-slate-50 dark:group-hover:bg-slate-900 relative">
+                  <div className="flex justify-between items-start">
+                    <div className="text-slate-300 group-hover:text-primary transition-colors">
+                      <FileText size={32} strokeWidth={1} />
+                    </div>
+                    <div className={cn(
+                      "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest",
+                      latestVersion?.status === 'approved' ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-400 bg-slate-400/10'
+                    )}>
+                      {latestVersion?.status || "draft"}
+                    </div>
+                  </div>
+                  
+                  <div className="mt-auto space-y-1">
+                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">v.{resume.versions.length}</p>
+                    <h3 className="text-lg font-medium leading-tight text-slate-700 dark:text-slate-200">
+                      {latestVersion?.type || "Technical Resume"}
+                    </h3>
+                  </div>
+
+                  <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
+                     <button className="p-2 text-slate-300 hover:text-primary">
+                        <MoreVertical size={16} />
+                     </button>
+                  </div>
+                </div>
+                
+                <div className="px-2 flex justify-between items-center text-[11px]">
+                   <span className="text-slate-400 font-light">Score: {latestVersion?.ai_score?.total || "--"}</span>
+                   <span className="text-slate-300 group-hover:text-primary transition-colors">Edit document →</span>
+                </div>
+              </motion.div>
+            );
+          })}
+
+          {/* Add New Card Slot */}
+          <motion.div 
+            onClick={() => setIsCreateOpen(true)}
+            className="aspect-[3/4] rounded-3xl border border-dashed border-slate-100 dark:border-slate-800 flex flex-col items-center justify-center gap-4 text-slate-200 hover:text-primary/40 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer group"
+          >
+             <Plus size={32} strokeWidth={1} />
+             <p className="text-sm font-medium">Add New Document</p>
+          </motion.div>
+        </div>
+      )}
+
+      <CreateResumeDialog 
+        isOpen={isCreateOpen}
+        onClose={() => setIsCreateOpen(false)}
+        onCreate={handleCreateResume}
+      />
     </div>
   );
 }

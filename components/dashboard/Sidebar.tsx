@@ -20,32 +20,32 @@ export function Sidebar() {
 
   return (
     <motion.aside
-      animate={{ width: isCollapsed ? 80 : 280 }}
-      className="h-screen sticky top-0 bg-background border-r border-white/5 flex flex-col transition-all duration-300"
+      animate={{ width: isCollapsed ? 84 : 280 }}
+      className="h-screen sticky top-0 flex flex-col transition-all duration-500 z-40 bg-white dark:bg-[#020617]"
     >
       {/* Sidebar Header */}
-      <div className="p-6 flex items-center justify-between">
+      <div className="p-8 flex items-center justify-between">
         {!isCollapsed && (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, x: -10 }}
+            animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-3 text-primary"
           >
-            <div className="nm-flat p-2 rounded-xl">
-              <Sparkles size={20} />
+            <div className="bg-primary/10 p-2 rounded-xl">
+              <Sparkles size={20} strokeWidth={1} />
             </div>
-            <span className="font-display font-semibold tracking-tight text-lg">MNIT ERP</span>
+            <span className="font-semibold tracking-tight text-xl text-foreground">Matrix</span>
           </motion.div>
         )}
         {isCollapsed && (
-          <div className="nm-flat p-2 rounded-xl text-primary mx-auto">
-            <Sparkles size={20} />
+          <div className="bg-primary/10 p-2 rounded-xl mx-auto text-primary">
+            <Sparkles size={20} strokeWidth={1} />
           </div>
         )}
       </div>
 
       {/* Nav Items */}
-      <nav className="flex-1 px-4 space-y-4 pt-6">
+      <nav className="flex-1 px-4 space-y-1.5 pt-10">
         {filteredItems.map((item) => {
           const isActive = pathname === item.href;
           const Icon = item.icon;
@@ -54,15 +54,21 @@ export function Sidebar() {
             <Link key={item.href} href={item.href} title={item.title}>
               <div 
                 className={cn(
-                  "flex items-center gap-4 px-4 py-3 rounded-2xl transition-all group",
+                  "flex items-center gap-4 px-4 py-3 rounded-2xl transition-all group relative",
                   isActive 
-                    ? "nm-inset text-primary" 
-                    : "hover:nm-convex text-muted-foreground hover:text-primary"
+                    ? "bg-slate-50 dark:bg-slate-900 text-primary font-medium" 
+                    : "text-slate-400 hover:text-foreground hover:bg-slate-50/50 dark:hover:bg-slate-900/50"
                 )}
               >
-                <Icon size={20} className={cn("shrink-0", isActive && "text-primary")} />
+                {isActive && (
+                  <motion.div 
+                    layoutId="active-indicator"
+                    className="absolute left-0 w-1 h-5 bg-primary rounded-r-full"
+                  />
+                )}
+                <Icon size={20} strokeWidth={isActive ? 2 : 1} className={cn("shrink-0", isActive && "text-primary")} />
                 {!isCollapsed && (
-                  <span className="font-medium text-sm truncate">{item.title}</span>
+                  <span className="text-sm tracking-tight truncate">{item.title}</span>
                 )}
               </div>
             </Link>
@@ -70,13 +76,13 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* Collapse Toggle */}
-      <div className="p-4 mt-auto">
+      {/* Footer Toggle */}
+      <div className="p-6 mt-auto">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-full nm-convex p-3 rounded-2xl text-muted-foreground hover:nm-inset transition-all flex items-center justify-center"
+          className="w-full h-11 rounded-2xl bg-slate-50 dark:bg-slate-900/50 transition-all hover:bg-slate-100 dark:hover:bg-slate-800 flex items-center justify-center text-slate-300 hover:text-slate-500"
         >
-          {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
     </motion.aside>
