@@ -76,7 +76,7 @@ export default function ResumeEditorPage() {
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      await resumeApi.saveResume(id as string, code);
+      await resumeApi.saveResume(id as string, { content: code });
       toast.success("Changes multi-synced to cloud");
     } catch (err) {
       toast.error("Cloud synchronization failed");
@@ -111,6 +111,18 @@ export default function ResumeEditorPage() {
       setScore(data.score || null);
       setImpactFeedback(data.impact_feedback || null);
       setAtsFeedback(data.ats_feedback || null);
+
+      // Silent sync score to DB
+      if (data.score !== undefined) {
+        resumeApi.saveResume(id as string, {
+          ai_score: {
+            total: data.score,
+            impact: data.impact_feedback,
+            ats: data.ats_feedback,
+            suggestions: data.improvement_suggestions
+          }
+        }).catch(err => console.error("Failed to sync score:", err));
+      }
     } catch (err) {
       setAiError("Institutional AI node is temporarily unreachable. Please ensure you're connected to the campus network.");
     } finally {

@@ -48,6 +48,15 @@
   --animate-pulse-soft: pulse-soft 3s ease-in-out infinite;
 }
 
+@layer base {
+  button, 
+  [role="button"], 
+  select, 
+  a:not([href=""]) {
+    cursor: pointer;
+  }
+}
+
 :root {
   --background: #F9F7E8; /* Cream */
   --foreground: #001A4D; /* Deep Navy to contrast Cream */
@@ -60,7 +69,7 @@
   --secondary: #78C9CF; /* Teal */
   --secondary-foreground: #001A4D;
   --muted: #F1F0E0; /* Subtle Cream shade */
-  --muted-foreground: #6B7280;
+  --muted-foreground: #52525B; /* Darkened for better contrast on cream */
   --accent: #FF9924; /* Accent Orange */
   --accent-foreground: #FFFFFF;
   --destructive: #EF4444;
@@ -108,8 +117,8 @@
       radial-gradient(at 0% 0%, rgba(0, 70, 255, 0.03) 0px, transparent 50%),
       radial-gradient(at 100% 100%, rgba(120, 201, 207, 0.03) 0px, transparent 50%);
   }
-  h1, h2, h3, h4, h5, h6 {
-    @apply font-display font-semibold tracking-tight;
+  input {
+    @apply bg-transparent border-b border-slate-200 dark:border-slate-800 rounded-none pb-1 font-light placeholder:text-slate-400 dark:placeholder:text-slate-600 focus:border-primary focus:ring-0 transition-all outline-none;
   }
 }
 

@@ -127,8 +127,8 @@ export default function UserManagementPage() {
     <div className="max-w-7xl mx-auto space-y-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
-          <h1 className="text-4xl font-display font-bold text-primary">User Management</h1>
-          <p className="text-muted-foreground font-light text-lg">Manage platform users, assign roles, and control access levels.</p>
+          <h1 className="text-4xl font-display font-bold text-primary dark:text-blue-500">User Management</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-light text-lg">Manage platform users, assign roles, and control access levels.</p>
         </div>
         <button className="nm-primary h-14 px-8 rounded-2xl flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95 shadow-xl whitespace-nowrap">
           <UserPlus size={20} />
@@ -139,11 +139,11 @@ export default function UserManagementPage() {
       <div className="nm-flat rounded-[3.5rem] p-8 pb-16 space-y-8 min-h-[500px]">
         <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
           <div className="w-full md:w-96 nm-inset px-6 py-4 rounded-3xl flex items-center gap-4">
-            <Search size={18} className="text-muted-foreground" />
+            <Search size={18} className="text-slate-400 dark:text-slate-500" />
             <input 
               type="text" 
               placeholder="Search by name, email, department..." 
-              className="bg-transparent border-none outline-none w-full text-sm font-medium"
+              className="bg-transparent border-0 border-b border-slate-200 dark:border-slate-800 focus:border-primary outline-none w-full text-sm font-medium transition-all rounded-none placeholder:text-slate-400 dark:placeholder:text-slate-600"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -219,7 +219,7 @@ export default function UserManagementPage() {
           <div className="overflow-x-auto custom-scrollbar overflow-y-visible">
             <table className="w-full text-left border-separate border-spacing-y-4">
               <thead>
-                <tr className="text-muted-foreground/50 text-[10px] uppercase tracking-[0.2em] font-bold">
+                <tr className="text-slate-500/60 dark:text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
                   <th className="px-8 py-2">User</th>
                   <th className="px-8 py-2">Role & Department</th>
                   <th className="px-8 py-2">Status</th>
@@ -241,8 +241,8 @@ export default function UserManagementPage() {
                           {user.name?.[0].toUpperCase()}
                         </div>
                         <div>
-                          <p className="font-bold text-sm text-foreground group-hover:text-primary transition-colors">{user.name}</p>
-                          <p className="text-[10px] text-muted-foreground font-medium">{user.email}</p>
+                          <p className="font-bold text-sm text-slate-800 dark:text-white group-hover:text-primary transition-colors">{user.name}</p>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-500 font-medium">{user.email}</p>
                         </div>
                       </div>
                     </td>
@@ -257,8 +257,8 @@ export default function UserManagementPage() {
                            );
                          })()}
                          <div className="flex flex-col">
-                            <span className="text-xs font-bold capitalize">{user.role}</span>
-                            <span className="text-[9px] font-bold uppercase tracking-wider opacity-40">{user.department || "General"}</span>
+                            <span className="text-xs font-bold capitalize text-slate-800 dark:text-slate-200">{user.role}</span>
+                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{user.department || "General"}</span>
                          </div>
                       </div>
                     </td>

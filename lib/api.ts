@@ -73,8 +73,8 @@ export const resumeApi = {
     const response = await api.post("/resumes", { type, initial_latex }, { signal });
     return response.data;
   },
-  saveResume: async (id: string, content: string, signal?: AbortSignal) => {
-    const response = await api.patch(`/resumes/${id}`, { content }, { signal });
+  saveResume: async (id: string, updates: Record<string, any>, signal?: AbortSignal) => {
+    const response = await api.patch(`/resumes/${id}`, updates, { signal });
     return response.data;
   },
   compilePdf: async (latex: string, signal?: AbortSignal) => {

@@ -8,6 +8,7 @@ import { useSession, signIn, signOut } from "next-auth/react";
 interface AuthContextType extends AuthState {
   loginWithGoogle: () => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -19,6 +20,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: false,
     isLoading: true,
   });
+
+  const refreshUser = async () => {
+    if (status !== "authenticated" || !session) return;
+    
+    try {
+      const userData = await authApi.getMe();
+      const user: User = {
+        id: userData._id || userData.id,
+        name: userData.name,
+        email: userData.email,
+        role: userData.role,
+        isSuperadmin: userData.role === "admin",
+        department: userData.department,
+        avatar: userData.avatar,
+      };
+      
+      setState({
+        user,
+        isAuthenticated: true,
+        isLoading: false,
+      });
+    } catch (err) {
+      console.error("Manual auth refresh failed", err);
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -62,8 +88,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             return; // Ignore intentional cancellations
           }
           console.error("Backend auth sync failed", err);
-          // Only sign out if the error is actually auth-related
-          // signOut();
           setState((s) => ({ ...s, isLoading: false }));
         }
       } else if (status === "unauthenticated") {
@@ -91,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, loginWithGoogle, logout }}>
+    <AuthContext.Provider value={{ ...state, loginWithGoogle, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

@@ -26,7 +26,7 @@ export function Hero() {
     },
   };
 
-  const dashboardPath = "/neo_brutalist_dashboard_mockup_1773762788312.png"; // Generated path
+  const dashboardPath = "dashboard.webp"; // Generated path
 
   return (
     <section className="relative min-h-screen pt-44 pb-20 flex flex-col justify-center items-center">
@@ -102,7 +102,7 @@ export function Hero() {
 
       {/* Institutional Banner */}
       <div className="mt-32 w-full max-w-4xl mx-auto px-6">
-         <div className="flex flex-wrap justify-center sm:justify-between items-center gap-x-12 gap-y-8 opacity-20 text-[10px] uppercase tracking-[0.4em] font-medium text-slate-400">
+         <div className="flex flex-wrap justify-center sm:justify-between items-center gap-x-12 gap-y-8 opacity-60 text-[10px] uppercase tracking-[0.4em] font-medium text-slate-500 dark:text-slate-400">
             <div className="flex items-center gap-2"><GraduationCap size={16} strokeWidth={1} /> MNIT JAIPUR</div>
             <div className="flex items-center gap-2"><Shield size={16} strokeWidth={1} /> PLACEMENT CELL</div>
             <div className="flex items-center gap-2"><FileText size={16} strokeWidth={1} /> CAREER SERVICES</div>

@@ -69,7 +69,7 @@ export default function FacultyValidatePage() {
       {/* Page Header */}
       <div className="flex flex-col gap-2">
         <h1 className="text-4xl font-display font-bold text-primary">Validation Queue</h1>
-        <p className="text-muted-foreground font-light text-lg">Review and approve student resumes for the placement season.</p>
+        <p className="text-slate-500 dark:text-slate-400 font-light text-lg">Review and approve student resumes for the placement season.</p>
       </div>
 
       {/* Stats Overview (Static for now) */}
@@ -82,7 +82,7 @@ export default function FacultyValidatePage() {
         ].map((stat, i) => (
           <div key={i} className="nm-flat p-6 rounded-3xl flex items-center justify-between">
             <div className="space-y-1">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{stat.label}</p>
+              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-bold">{stat.label}</p>
               <p className="text-2xl font-display font-bold">{stat.value}</p>
             </div>
             <div className={cn("nm-inset p-3 rounded-xl", stat.color)}>
@@ -96,11 +96,11 @@ export default function FacultyValidatePage() {
       <div className="nm-flat rounded-[3rem] p-8 space-y-8 relative">
         <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
           <div className="w-full md:w-96 nm-inset px-6 py-3 rounded-2xl flex items-center gap-4">
-            <Search size={18} className="text-muted-foreground" />
+            <Search size={18} className="text-slate-400 dark:text-slate-500" />
             <input 
               type="text" 
               placeholder="Search students, departments..." 
-              className="bg-transparent border-none outline-none w-full text-sm"
+              className="bg-transparent border-none outline-none w-full text-sm placeholder:text-slate-400 dark:placeholder:text-slate-600"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
@@ -255,7 +255,7 @@ export default function FacultyValidatePage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-separate border-spacing-y-4">
               <thead>
-                <tr className="text-muted-foreground/50 text-[10px] uppercase tracking-[0.2em] font-bold">
+                <tr className="text-slate-500/60 dark:text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
                   <th className="px-6 py-2">Student</th>
                   <th className="px-6 py-2">Details</th>
                   <th className="px-6 py-2 text-center">AI Score</th>
@@ -278,19 +278,19 @@ export default function FacultyValidatePage() {
                           {item.studentName?.split(' ').map((n: string) => n[0]).join('')}
                         </div>
                         <div>
-                          <p className="font-semibold text-sm">{item.studentName}</p>
-                          <p className="text-[10px] text-muted-foreground">{item.studentEmail}</p>
+                          <p className="font-semibold text-sm text-slate-700 dark:text-white">{item.studentName}</p>
+                          <p className="text-[10px] text-muted-foreground dark:text-slate-400">{item.studentEmail}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-5">
                       <div className="space-y-1">
-                        <p className="text-xs font-medium">{item.type} Resume</p>
-                        <p className="text-[10px] text-muted-foreground">{item.department}</p>
+                        <p className="text-xs font-medium text-slate-700 dark:text-white">{item.type} Resume</p>
+                        <p className="text-[10px] text-muted-foreground dark:text-slate-400">{item.department}</p>
                       </div>
                     </td>
                     <td className="px-6 py-5 text-center">
-                      <span className="text-lg font-display font-medium text-primary">{item.score}%</span>
+                      <span className="text-lg font-display font-medium text-primary dark:text-blue-400">{item.score}%</span>
                     </td>
                     <td className="px-6 py-5 text-sm">
                       <span className={cn(
