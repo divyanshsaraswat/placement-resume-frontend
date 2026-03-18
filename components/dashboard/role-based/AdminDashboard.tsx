@@ -1,52 +1,64 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ShieldCheck, UserPlus, Database, Activity, History } from "lucide-react";
+import { ShieldCheck, UserPlus, Database, Activity, History, Loader2 } from "lucide-react";
 import { DashboardStats } from "../DashboardStats";
 import { DonutChart, LineChart } from "../DashboardCharts";
 import Link from "next/link";
+import { adminApi } from "@/lib/api";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
 
 export function AdminDashboard() {
-  const stats = [
-    {
-      title: "Total Users",
-      value: "2,450",
-      icon: UserPlus,
-      trend: { value: 12, isUp: true }
-    },
-    {
-      title: "Active Resumes",
-      value: "1,890",
-      icon: Database,
-      trend: { value: 8, isUp: true }
-    },
-    {
-      title: "System Health",
-      value: "99.9%",
-      icon: Activity,
-      description: "All services operational"
-    },
-    {
-      title: "Recent Actions",
-      value: 124,
-      icon: History,
-      description: "Last 24 hours"
-    }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
+  const [logs, setLogs] = useState<any[]>([]);
 
-  const roleDistribution = [
-    { label: "Students", value: 2100, color: "var(--primary)" },
-    { label: "Faculty", value: 250, color: "var(--secondary)" },
-    { label: "SPC", value: 80, color: "var(--accent)" },
-    { label: "Admins", value: 20, color: "#1e293b" },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [stats, recentLogs] = await Promise.all([
+          adminApi.getStats(),
+          adminApi.getLogs({ limit: 5 })
+        ]);
+        setData(stats);
+        setLogs(recentLogs);
+      } catch (error) {
+        console.error("Failed to fetch admin dashboard:", error);
+        toast.error("Failed to load dashboard data");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const userGrowth = [
-    { label: "Week 1", current: 450, previous: 400 },
-    { label: "Week 2", current: 890, previous: 750 },
-    { label: "Week 3", current: 1450, previous: 1200 },
-    { label: "Week 4", current: 2450, previous: 2000 },
-  ];
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary opacity-20" />
+      </div>
+    );
+  }
+
+  // Map icon strings to components
+  const iconMap: Record<string, any> = {
+    UserPlus,
+    Database,
+    Activity,
+    History
+  };
+
+  const stats = data?.stats?.map((s: any) => ({
+    ...s,
+    icon: iconMap[s.icon] || UserPlus
+  })) || [];
+
+  const roleDistribution = data?.roleDistribution || [];
+  const userGrowth = data?.userGrowth || [];
 
   return (
     <div className="space-y-8">
@@ -71,7 +83,7 @@ export function AdminDashboard() {
         <LineChart 
           title="User Acquisition" 
           data={userGrowth} 
-          maxValue={3000}
+          maxValue={Math.max(...userGrowth.map((d: any) => d.current), 100) * 1.2}
         />
         <DonutChart 
           title="User Roles" 
@@ -95,18 +107,21 @@ export function AdminDashboard() {
               </tr>
             </thead>
             <tbody className="text-sm">
-              {[
-                { action: "ROLE_CHANGE", actor: "admin@mnit.ac.in", target: "faculty_user_01", time: "2m ago" },
-                { action: "USER_DELETE", actor: "admin@mnit.ac.in", target: "spamer_99", time: "15m ago" },
-                { action: "SYS_CONFIG", actor: "admin@mnit.ac.in", target: "auth_service", time: "1h ago" },
-              ].map((log, i) => (
-                <tr key={i} className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
+              {logs.map((log, i) => (
+                <tr key={log.id || i} className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors">
                   <td className="py-4 font-mono text-xs font-bold text-primary">{log.action}</td>
-                  <td className="py-4">{log.actor}</td>
-                  <td className="py-4 text-muted-foreground">{log.target}</td>
-                  <td className="py-4 text-xs text-muted-foreground">{log.time}</td>
+                  <td className="py-4">{log.actor_name}</td>
+                  <td className="py-4 text-muted-foreground">{log.target || "-"}</td>
+                  <td className="py-4 text-xs text-muted-foreground">
+                    {log.timestamp ? formatDistanceToNow(new Date(log.timestamp), { addSuffix: true }) : "just now"}
+                  </td>
                 </tr>
               ))}
+              {logs.length === 0 && (
+                <tr>
+                  <td colSpan={4} className="py-8 text-center text-muted-foreground italic">No logs found</td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

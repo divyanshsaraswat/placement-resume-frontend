@@ -1,71 +1,72 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FileText, Award, Clock, Target, Plus } from "lucide-react";
+import { FileText, Award, Clock, Target, Plus, Loader2 } from "lucide-react";
 import { DashboardStats } from "../DashboardStats";
 import { DonutChart, BarChart, LineChart } from "../DashboardCharts";
 import { CreateResumeDialog } from "../CreateResumeDialog";
+import { resumeApi, authApi } from "@/lib/api";
+import { toast } from "sonner";
 
 export function StudentDashboard() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
 
-  const stats = [
-    {
-      title: "Active Resumes",
-      value: 3,
-      icon: FileText,
-      description: "2 SDE, 1 Marketing",
-      trend: { value: 12, isUp: true }
-    },
-    {
-      title: "Avg AI Score",
-      value: "84/100",
-      icon: Award,
-      trend: { value: 5, isUp: true }
-    },
-    {
-      title: "Pending Reviews",
-      value: 1,
-      icon: Clock,
-      description: "Awaiting Faculty response"
-    },
-    {
-      title: "Placement Goal",
-      value: "92%",
-      icon: Target,
-      description: "SDE Role Readiness",
-      trend: { value: 2, isUp: true }
-    }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const stats = await resumeApi.getStats();
+        setData(stats);
+      } catch (error) {
+        console.error("Failed to fetch dashboard stats:", error);
+        toast.error("Failed to load dashboard statistics");
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const resumeTypeData = [
-    { label: "SDE", value: 2, color: "var(--primary)" },
-    { label: "Marketing", value: 1, color: "var(--accent)" },
-    { label: "Core", value: 0, color: "var(--secondary)" },
-  ];
-
-  const scoreHistory = [
-    { label: "Jan", current: 65, previous: 60 },
-    { label: "Feb", current: 72, previous: 65 },
-    { label: "Mar", current: 84, previous: 70 },
-  ];
-
-  const validationActivity = [
-    { label: "Mon", value: 2, maxValue: 5 },
-    { label: "Tue", value: 4, maxValue: 5 },
-    { label: "Wed", value: 1, maxValue: 5 },
-    { label: "Thu", value: 3, maxValue: 5 },
-    { label: "Fri", value: 5, maxValue: 5 },
-    { label: "Sat", value: 0, maxValue: 5 },
-    { label: "Sun", value: 0, maxValue: 5 },
-  ];
+    fetchData();
+  }, []);
 
   const handleCreateResume = async (name: string, template: string): Promise<void> => {
-    // Mock create logic
-    console.log("Creating resume:", name, "with template:", template);
-    return new Promise((resolve) => setTimeout(resolve, 1000));
+    try {
+      await resumeApi.createResume(name, "", "latex");
+      toast.success("Resume created successfully");
+      // Refresh data
+      const stats = await resumeApi.getStats();
+      setData(stats);
+    } catch (error) {
+      toast.error("Failed to create resume");
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary opacity-20" />
+      </div>
+    );
+  }
+
+  // Map icon strings to components
+  const iconMap: Record<string, any> = {
+    FileText,
+    Award,
+    Clock,
+    Target
+  };
+
+  const stats = data?.stats?.map((s: any) => ({
+    ...s,
+    icon: iconMap[s.icon] || FileText
+  })) || [];
+
+  const resumeTypeData = data?.resumeDistribution || [];
+  const scoreHistory = data?.scoreHistory || [];
+  const validationActivity = data?.validationActivity || [];
 
   return (
     <div className="space-y-8">

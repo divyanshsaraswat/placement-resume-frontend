@@ -1,53 +1,84 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, GraduationCap, Briefcase, TrendingUp, Search } from "lucide-react";
+import { Users, GraduationCap, Briefcase, TrendingUp, Search, Loader2 } from "lucide-react";
 import { DashboardStats } from "../DashboardStats";
 import { DonutChart, BarChart, LineChart } from "../DashboardCharts";
+import { adminApi } from "@/lib/api";
+import { toast } from "sonner";
 
 export function SPCDashboard() {
   const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const analytics = await adminApi.getStudentAnalytics();
+        setData(analytics);
+      } catch (error) {
+        console.error("Failed to fetch SPC analytics:", error);
+        toast.error("Failed to load placement analytics");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="w-12 h-12 animate-spin text-primary opacity-20" />
+      </div>
+    );
+  }
+
   const stats = [
     {
       title: "Placement Ready",
-      value: "72%",
+      value: `${data?.overall_readiness || 0}%`,
       icon: GraduationCap,
       description: "Approved resumes",
       trend: { value: 5, isUp: true }
     },
     {
       title: "Total Students",
-      value: "1,240",
+      value: data?.total_students || 0,
       icon: Users,
     },
     {
       title: "Active Drives",
-      value: 8,
+      value: 12, // Draft for now
       icon: Briefcase,
       description: "Upcoming companies"
     },
     {
       title: "Validation Rate",
-      value: "94%",
+      value: "94%", // Draft for now
       icon: TrendingUp,
       trend: { value: 2, isUp: true }
     }
   ];
 
-  const deptReadiness = [
-    { label: "CSE", value: 85, maxValue: 100 },
-    { label: "ECE", value: 78, maxValue: 100 },
-    { label: "ME", value: 62, maxValue: 100 },
-    { label: "EE", value: 68, maxValue: 100 },
-    { label: "CE", value: 55, maxValue: 100 },
-  ];
+  const deptReadiness = data?.department_metrics?.map((d: any) => ({
+    label: d.name,
+    value: d.readiness_rate,
+    maxValue: 100
+  })) || [];
 
-  const resumeStatus = [
-    { label: "Approved", value: 890, color: "var(--primary)" },
-    { label: "Pending", value: 240, color: "var(--accent)" },
-    { label: "Needs Rev.", value: 110, color: "var(--secondary)" },
-  ];
+  const resumeStatus = Object.entries(data?.status_distribution || {}).map(([label, value], i) => {
+    const colors = ["var(--primary)", "var(--secondary)", "var(--accent)", "#1e293b", "#64748b"];
+    return {
+      label: label.charAt(0).toUpperCase() + label.slice(1),
+      value: value as number,
+      color: colors[i % colors.length]
+    };
+  });
 
   return (
     <div className="space-y-8">
