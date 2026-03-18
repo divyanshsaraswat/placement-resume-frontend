@@ -60,7 +60,7 @@ export function DonutChart({ data, title, className }: DonutChartProps) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-x-8 gap-y-4 w-full">
+        <div className="flex flex-col gap-y-4 w-full px-2">
           {data.map((item, i) => (
             <div key={i} className="flex items-center gap-3 group cursor-default">
               <div 
@@ -70,7 +70,7 @@ export function DonutChart({ data, title, className }: DonutChartProps) {
               <div className="flex flex-col">
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">{item.label}</span>
                 <span className="text-[10px] font-bold text-slate-400 uppercase">
-                  {Math.round((item.value / total) * 100)}% • {item.value} units
+                  {total > 0 ? Math.round((item.value / total) * 100) : 0}% • {item.value} units
                 </span>
               </div>
             </div>

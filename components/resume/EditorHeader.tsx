@@ -15,23 +15,21 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 interface EditorHeaderProps {
-  view: "code" | "visual";
-  onViewChange: (view: "code" | "visual") => void;
   isSaving: boolean;
   onSave: () => void;
   onAIOpen: () => void;
+  onReload?: () => void;
+  onDownload?: () => void;
   title: string;
-  hideViewSwitcher?: boolean;
 }
 
 export function EditorHeader({ 
-  view, 
-  onViewChange, 
   isSaving, 
   onSave, 
   onAIOpen, 
-  title,
-  hideViewSwitcher 
+  onReload,
+  onDownload,
+  title
 }: EditorHeaderProps) {
   return (
     <div className="h-16 border-b border-border bg-background flex items-center justify-between px-4 md:px-6 z-50">
@@ -47,44 +45,14 @@ export function EditorHeader({
           <div className="text-primary hidden sm:block">
             <CloudCheck size={20} strokeWidth={1.5} />
           </div>
-          <div className="flex flex-col -space-y-0.5 max-w-[100px] sm:max-w-none">
+          <div className="flex flex-col -space-y-0.5 max-w-[150px] sm:max-w-none">
             <span className="text-sm font-bold tracking-tight truncate">{title}</span>
-            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest hidden sm:block">Institutional Template v2.1</span>
+            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest hidden sm:block">Institutional LaTeX Editor</span>
           </div>
         </div>
       </div>
 
-      {/* Middle Area: View Switching (Overleaf Style) - Hidden on extra small mobile */}
-      {!hideViewSwitcher && (
-        <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-border/50 shadow-inner scale-90 md:scale-100">
-          <button
-            onClick={() => onViewChange("code")}
-            className={cn(
-              "flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all",
-              view === "code" 
-                ? "bg-white dark:bg-slate-800 text-primary shadow-sm shadow-black/5" 
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Code2 size={14} />
-            <span className="hidden md:inline">Code Editor</span>
-            <span className="md:hidden">Code</span>
-          </button>
-          <button
-            onClick={() => onViewChange("visual")}
-            className={cn(
-              "flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all",
-              view === "visual" 
-                ? "bg-white dark:bg-slate-800 text-primary shadow-sm shadow-black/5" 
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Eye size={14} />
-            <span className="hidden md:inline">Visual Editor</span>
-            <span className="md:hidden">Visual</span>
-          </button>
-        </div>
-      )}
+
 
       {/* Right Area: Main Actions */}
       <div className="flex items-center gap-2 md:gap-4 font-mono">
@@ -97,7 +65,11 @@ export function EditorHeader({
              <Save size={16} strokeWidth={1.5} />
              <span className="hidden lg:inline">{isSaving ? "Saving..." : "Auto-saved"}</span>
            </button>
-           <button className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-all hidden sm:block">
+           <button 
+             onClick={onReload}
+             className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:hover:bg-slate-800 transition-all hidden sm:block"
+             title="Reload from Cloud"
+           >
              <RotateCcw size={16} strokeWidth={1.5} />
            </button>
         </div>
@@ -111,7 +83,10 @@ export function EditorHeader({
               <Sparkles size={14} />
               <span className="hidden md:inline">AI Review</span>
             </button>
-            <button className="flex items-center justify-center sm:gap-2 p-2 sm:px-4 sm:py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 min-w-10 text-xs font-bold hover:scale-[1.02] transition-transform shadow-lg shadow-black/10">
+            <button 
+              onClick={onDownload}
+              className="flex items-center justify-center sm:gap-2 p-2 sm:px-4 sm:py-2 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 min-w-10 text-xs font-bold hover:scale-[1.02] transition-transform shadow-lg shadow-black/10"
+            >
               <Download size={14} />
               <span className="hidden md:inline">Download</span>
             </button>

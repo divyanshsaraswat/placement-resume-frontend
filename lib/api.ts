@@ -69,8 +69,32 @@ export const resumeApi = {
     const response = await api.get(`/resumes/${id}`, { signal });
     return response.data;
   },
-  createResume: async (type: string, initial_latex: string = "", format: string = "latex", file_url?: string, signal?: AbortSignal) => {
-    const response = await api.post("/resumes", { type, initial_latex, format, file_url }, { signal });
+  createResume: async (type: string, initial_latex: string = "", format: string = "latex", file?: File, signal?: AbortSignal) => {
+    const formData = new FormData();
+    formData.append("type", type);
+    formData.append("initial_latex", initial_latex);
+    formData.append("format", format);
+    if (file) {
+      formData.append("file", file);
+    }
+    const response = await api.post("/resumes", formData, { 
+      headers: { "Content-Type": "multipart/form-data" },
+      signal 
+    });
+    return response.data;
+  },
+  addVersion: async (resumeId: string, type: string, latex_code: string = "", format: string = "latex", file?: File, signal?: AbortSignal) => {
+    const formData = new FormData();
+    formData.append("type", type);
+    formData.append("latex_code", latex_code);
+    formData.append("format", format);
+    if (file) {
+      formData.append("file", file);
+    }
+    const response = await api.post(`/resumes/${resumeId}/version`, formData, { 
+      headers: { "Content-Type": "multipart/form-data" },
+      signal 
+    });
     return response.data;
   },
   saveResume: async (id: string, updates: Record<string, any>, signal?: AbortSignal) => {
@@ -83,6 +107,13 @@ export const resumeApi = {
   },
   submitResume: async (id: string, signal?: AbortSignal) => {
     const response = await api.post(`/resumes/${id}/submit`, null, { signal });
+    return response.data;
+  },
+  updateVersionStatus: async (resumeId: string, versionId: string, status: string, signal?: AbortSignal) => {
+    const response = await api.patch(`/resumes/${resumeId}/versions/${versionId}/status`, null, { 
+      params: { status },
+      signal 
+    });
     return response.data;
   },
   compilePdf: async (latex: string, signal?: AbortSignal) => {
@@ -191,9 +222,35 @@ export const adminApi = {
     const response = await api.delete(`/users/${userId}`);
     return response.data;
   },
-  getLogs: async (signal?: AbortSignal) => {
-    const response = await api.get("/logs", { signal }); 
+  createUser: async (data: { name: string; email: string; role: string; department?: string; year?: number }) => {
+    const response = await api.post("/users", data);
     return response.data;
+  },
+  getLogs: async (params: { search?: string; log_type?: string; skip?: number; limit?: number }, signal?: AbortSignal) => {
+    const response = await api.get("/logs", { params, signal }); 
+    return response.data;
+  },
+  getLogStats: async (signal?: AbortSignal) => {
+    const response = await api.get("/logs/stats", { signal });
+    return response.data;
+  },
+  getStudentAnalytics: async (signal?: AbortSignal) => {
+    const response = await api.get("/users/students/analytics", { signal });
+    return response.data;
+  },
+  exportLogs: async (params: { search?: string; log_type?: string }, signal?: AbortSignal) => {
+    const response = await api.get("/logs/export", { 
+      params, 
+      signal,
+      responseType: 'blob' 
+    });
+    return response.data;
+  },
+  exportLogsUrl: (params: { search?: string; log_type?: string }) => {
+    const searchParams = new URLSearchParams();
+    if (params.search) searchParams.append("search", params.search);
+    if (params.log_type) searchParams.append("log_type", params.log_type);
+    return `${api.defaults.baseURL}/logs/export?${searchParams.toString()}`;
   },
 };
 

@@ -100,22 +100,22 @@ export function AIDrawer({
             animate={{ y: 0 }}
             exit={{ y: "100%" }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className="fixed bottom-0 left-0 right-0 h-[90vh] bg-background border-t border-border shadow-[0_-20px_50px_rgba(0,0,0,0.1)] z-[70] flex flex-col rounded-t-[3rem] overflow-hidden"
+            className="fixed bottom-0 left-0 right-0 h-[95vh] md:h-[90vh] bg-background border-t border-border shadow-[0_-20px_50px_rgba(0,0,0,0.1)] z-[70] flex flex-col rounded-t-[2.5rem] md:rounded-t-[3rem] overflow-hidden"
           >
             {/* Header */}
-            <div className="px-10 py-6 border-b border-border/50 flex items-center justify-between bg-primary/[0.02]">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
-                  <Sparkles size={20} strokeWidth={1.5} />
+            <div className="px-6 md:px-10 py-5 md:py-6 border-b border-border/50 flex items-center justify-between bg-primary/[0.02] shrink-0">
+              <div className="flex items-center gap-3 md:gap-4">
+                <div className="w-9 h-9 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                  <Sparkles size={18} className="md:w-5 md:h-5" strokeWidth={1.5} />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold tracking-tight">Institutional AI Assistant</h3>
+                  <h3 className="text-base md:text-lg font-bold tracking-tight">Institutional AI Assistant</h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <div className={cn(
                       "w-1.5 h-1.5 rounded-full animate-pulse",
                       error ? "bg-rose-500" : "bg-emerald-500"
                     )} />
-                    <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                    <span className="text-[9px] md:text-[10px] text-muted-foreground font-bold uppercase tracking-widest leading-none">
                       {error ? "Engine Fault Detected" : "Active Intelligence Engine"}
                     </span>
                   </div>
@@ -130,12 +130,12 @@ export function AIDrawer({
             </div>
 
             {/* Content Split */}
-            <div className="flex-1 flex overflow-hidden">
+            <div className="flex-1 flex flex-col-reverse md:flex-row overflow-hidden">
                {/* Messages Area */}
-               <div className="flex-1 flex flex-col min-w-0">
+               <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
                   <div 
                     ref={scrollRef}
-                    className="flex-1 overflow-y-auto p-10 space-y-6 scrollbar-hide"
+                    className="flex-1 overflow-y-auto p-6 md:p-10 space-y-5 md:space-y-6 scrollbar-hide"
                   >
                     {messages.map((msg, i) => (
                       <motion.div 
@@ -197,26 +197,26 @@ export function AIDrawer({
                   </div>
 
                   {/* Input Area */}
-                  <div className="p-8 pt-0">
-                     <div className="bg-slate-50 dark:bg-slate-900 border border-border/60 rounded-[2rem] p-2 pl-6 flex items-center gap-2 shadow-inner focus-within:border-primary/50 transition-colors">
+                  <div className="p-6 md:p-8 pt-0">
+                     <div className="bg-slate-50 dark:bg-slate-900 border border-border/60 rounded-[1.8rem] md:rounded-[2rem] p-1.5 md:p-2 pl-4 md:pl-6 flex items-center gap-2 shadow-inner focus-within:border-primary/50 transition-colors">
                         <input 
                           value={input}
                           onChange={(e) => setInput(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && handleSend()}
                           placeholder="Ask anything about your resume standards..."
-                          className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-3 outline-none"
+                          className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2.5 md:py-3 outline-none"
                         />
                         <button 
                           onClick={handleSend}
-                          className="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-primary/20"
+                          className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-primary text-white flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-primary/20"
                         >
-                          <Send size={16} />
+                          <Send size={15} />
                         </button>
                      </div>
                   </div>
                </div>
 
-                <div className="w-[420px] border-l border-border/50 bg-slate-50/50 dark:bg-slate-950/30 p-8 space-y-8 overflow-y-auto">
+                <div className="w-full md:w-[380px] lg:w-[420px] border-b md:border-b-0 md:border-l border-border/50 bg-slate-50/50 dark:bg-slate-950/30 p-6 md:p-8 space-y-6 md:space-y-8 overflow-y-auto max-h-[50vh] md:max-h-none shrink-0">
                   <div className="space-y-6">
                      <div className="flex items-center justify-between">
                         <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Institutional Analysis</h4>
@@ -232,20 +232,20 @@ export function AIDrawer({
                      </div>
                      
                      {isLoading ? (
-                        <div className="p-12 flex flex-col items-center justify-center text-center space-y-4 border-2 border-dashed border-primary/20 rounded-3xl bg-white/50 dark:bg-slate-900/50">
+                        <div className="p-8 md:p-12 flex flex-col items-center justify-center text-center space-y-4 border-2 border-dashed border-primary/20 rounded-2xl md:rounded-3xl bg-white/50 dark:bg-slate-900/50">
                            <motion.div
                              animate={{ rotate: 360 }}
                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                              className="text-primary/40"
                            >
-                             <Sparkles size={32} strokeWidth={1} />
+                             <Sparkles size={28} strokeWidth={1} />
                            </motion.div>
                            <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest animate-pulse">Running institutional <br /> compliance check...</p>
                         </div>
                      ) : error ? (
-                        <div className="p-8 flex flex-col items-center justify-center text-center space-y-4 border-2 border-dashed border-rose-200 dark:border-rose-900/30 rounded-3xl bg-rose-50/50 dark:bg-rose-950/10">
-                           <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-500">
-                             <X size={20} strokeWidth={1.5} />
+                        <div className="p-6 md:p-8 flex flex-col items-center justify-center text-center space-y-4 border-2 border-dashed border-rose-200 dark:border-rose-900/30 rounded-2xl md:rounded-3xl bg-rose-50/50 dark:bg-rose-950/10">
+                           <div className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-500">
+                             <X size={18} strokeWidth={1.5} />
                            </div>
                            <div className="space-y-1">
                              <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">Analysis Failed</p>
@@ -262,25 +262,25 @@ export function AIDrawer({
                            </div>
                         </div>
                      ) : (
-                       <div className="space-y-6">
+                       <div className="space-y-5 md:space-y-6">
                          {score !== undefined && score !== null && (
                            <motion.div 
                              initial={{ opacity: 0, scale: 0.9 }}
                              animate={{ opacity: 1, scale: 1 }}
-                             className="bg-white dark:bg-slate-900 p-6 rounded-[2rem] border border-border shadow-sm text-center relative overflow-hidden group"
+                             className="bg-white dark:bg-slate-900 p-5 md:p-6 rounded-[1.8rem] md:rounded-[2rem] border border-border shadow-sm text-center relative overflow-hidden group"
                            >
                              <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                               <Sparkles size={64} />
+                               <Sparkles size={48} className="md:w-16 md:h-16" />
                              </div>
                              <div className="relative">
                                 <span className={cn(
-                                  "text-5xl font-black tracking-tighter",
+                                  "text-4xl md:text-5xl font-black tracking-tighter",
                                   score > 80 ? "text-emerald-500" : score > 60 ? "text-amber-500" : "text-rose-500"
                                 )}>
                                   {score}
                                 </span>
-                                <sub className="text-muted-foreground text-xs font-bold ml-1">/ 100</sub>
-                                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2">Institutional Readiness Score</p>
+                                <sub className="text-muted-foreground text-[10px] md:text-xs font-bold ml-1">/ 100</sub>
+                                <p className="text-[9px] md:text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-2 px-2">Institutional Readiness Score</p>
                              </div>
                            </motion.div>
                          )}
@@ -312,9 +312,9 @@ export function AIDrawer({
                                     initial={{ opacity: 0, x: 20 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: i * 0.1 }}
-                                    className="bg-white dark:bg-slate-900/50 p-4 rounded-2xl border border-border shadow-sm text-xs text-muted-foreground font-light leading-relaxed relative pl-10"
+                                    className="bg-white dark:bg-slate-900/50 p-3.5 md:p-4 rounded-xl md:rounded-2xl border border-border shadow-sm text-[11px] md:text-xs text-muted-foreground font-light leading-relaxed relative pl-9 md:pl-10"
                                   >
-                                     <div className="absolute left-4 top-4 w-1.5 h-1.5 rounded-full bg-primary/40" />
+                                     <div className="absolute left-3.5 md:left-4 top-4 w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-primary/40" />
                                      {s}
                                   </motion.div>
                                 ))}

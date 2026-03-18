@@ -34,13 +34,25 @@ export const dashboardNavItems: NavItem[] = [
     title: "Validation Queue",
     href: "/dashboard/faculty/validate",
     icon: UserCheck,
-    roles: ["faculty", "spc"],
+    roles: ["faculty"],
+  },
+  {
+    title: "Validation Queue",
+    href: "/dashboard/spc/validate",
+    icon: UserCheck,
+    roles: ["spc"],
   },
   {
     title: "Students",
     href: "/dashboard/spc/students",
     icon: Users,
-    roles: ["spc", "admin"],
+    roles: ["spc"],
+  },
+  {
+    title: "Placement Analytics",
+    href: "/dashboard/admin/students",
+    icon: Users,
+    roles: ["admin"],
   },
   {
     title: "Audit Logs",

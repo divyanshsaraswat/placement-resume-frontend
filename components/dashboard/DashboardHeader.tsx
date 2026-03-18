@@ -1,8 +1,8 @@
 "use client";
 
 import { useAuth } from "@/context/auth-context";
-import { ThemeToggle } from "@/components/theme-toggle";
-import { LogOut, Bell, Search, User, Menu, Settings, ChevronRight, Sparkles, MessageSquare } from "lucide-react";
+import { LogOut, Bell, Search, User, Menu, Settings, ChevronRight, Sparkles, MessageSquare, Sun, Moon } from "lucide-react";
+import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
@@ -14,6 +14,7 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const { user, logout } = useAuth();
+  const { theme, setTheme } = useTheme();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   
@@ -42,7 +43,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
 
   return (
     <header className="h-16 px-4 md:px-8 flex items-center justify-between bg-white/80 dark:bg-[#020617]/80 backdrop-blur-md border-b border-border/40 sticky top-0 z-50">
-      <div className="flex items-center gap-2 md:gap-3">
+      <div className="flex items-center gap-3">
         {onMenuClick && (
           <button 
             onClick={onMenuClick}
@@ -51,10 +52,15 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
             <Menu size={20} strokeWidth={1.5} />
           </button>
         )}
+        <div className="flex items-center gap-2.5 lg:hidden">
+          <div className="bg-primary/10 p-1.5 rounded-lg">
+            <Sparkles size={16} strokeWidth={1.5} className="text-primary" />
+          </div>
+          <span className="font-semibold tracking-tight text-base text-foreground">Matrix</span>
+        </div>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
-        <ThemeToggle />
         
         {/* Notifications Popover */}
         <div className="relative" ref={notificationRef}>
@@ -155,6 +161,16 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                   </div>
                   <ChevronRight size={14} className="opacity-0 group-hover:opacity-100 transition-all translate-x-[-4px] group-hover:translate-x-0" />
                 </Link>
+
+                <button
+                  onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                  className="flex items-center justify-between w-full p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300 hover:text-primary transition-all group"
+                >
+                  <div className="flex items-center gap-3">
+                    {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+                    <span className="text-sm font-medium">{theme === 'dark' ? 'Light Mode' : 'Dark Mode'}</span>
+                  </div>
+                </button>
 
                 <button 
                   onClick={() => {

@@ -4,11 +4,12 @@ import { useState } from "react";
 import { Plus, X, Sparkles, FileText, ChevronRight, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface CreateResumeDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (type: string, template: string, format: string, fileUrl?: string) => Promise<void>;
+  onCreate: (type: string, template: string, format: string, file?: File) => Promise<void>;
 }
 
 const TEMPLATES = [
@@ -96,15 +97,22 @@ export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDi
     e.preventDefault();
     if (!name) return;
     
+    // Validate file selection for non-latex formats
+    if (selectedTemplate.format !== 'latex' && !selectedFile) {
+      toast.error("Please select a file to upload");
+      return;
+    }
+
+    // Reject files over 2MB on the frontend
+    if (selectedFile && selectedFile.size > 2 * 1024 * 1024) {
+      toast.error("File too large. Maximum allowed size is 2MB.");
+      return;
+    }
+    
     setIsSubmitting(true);
     try {
       const finalType = selectedTemplate.id === 'custom' ? (customType || "Custom Resume") : selectedTemplate.name;
-      // For now, we simulate a file URL if it's an upload type
-      const fileUrl = (selectedTemplate.id === 'pdf_upload' || selectedTemplate.id === 'docx_upload') 
-        ? `temp_${Date.now()}_${selectedTemplate.id === 'pdf_upload' ? 'resume.pdf' : 'resume.docx'}`
-        : undefined;
-        
-      await onCreate(name, selectedTemplate.latex || "", (selectedTemplate as any).format || "latex", fileUrl);
+      await onCreate(name, selectedTemplate.latex || "", (selectedTemplate as any).format || "latex", selectedFile || undefined);
       onClose();
     } catch (err) {
       console.error(err);

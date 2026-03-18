@@ -2,6 +2,7 @@ import { auth } from "@/app/auth";
 import { 
   PUBLIC_ROUTES, 
   AUTH_ROUTES, 
+  ROLE_PATHS, 
   getRolePath 
 } from "@/lib/routes";
 
@@ -29,17 +30,27 @@ const authMiddleware = auth((req) => {
       return Response.redirect(new URL("/login", nextUrl));
     }
 
-    // Role-based protection: check if they are in the correct namespace
-    const role = (req.auth?.user as any)?.role?.toLowerCase();
+    // 2. Role-based namespace protection: check if they are in the correct namespace
+    const role = ((req.auth?.user as any)?.role as string | undefined)?.toLowerCase();
     const path = nextUrl.pathname.toLowerCase();
 
-    if (role === 'student' && path.startsWith('/dashboard/admin')) {
-        return Response.redirect(new URL(getRolePath(role), nextUrl));
+    // Skip check for shared dashboard pages
+    const sharedPaths = ['/dashboard/settings', '/dashboard'];
+    if (sharedPaths.some(p => path === p)) return;
+
+    // Enforce that roles stay within their dashboard namespaces
+    if (role) {
+      const roleEntries = Object.entries(ROLE_PATHS);
+      for (const [r, basePath] of roleEntries) {
+        if (path.startsWith(basePath) && role !== r) {
+          // Exception: Admin can access any role namespace
+          if (role === 'admin') continue;
+          
+          // Redirect unauthorized access to their own role's home
+          return Response.redirect(new URL(getRolePath(role), nextUrl));
+        }
+      }
     }
-    if (role === 'student' && path.startsWith('/dashboard/faculty')) {
-        return Response.redirect(new URL(getRolePath(role), nextUrl));
-    }
-    // Add more role-specific constraints as needed
   }
 
   return;

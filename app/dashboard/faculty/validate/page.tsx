@@ -4,6 +4,7 @@ import { Search, Filter, Eye, CheckCircle, XCircle, Clock, ArrowRight, Loader2, 
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { resumeApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -19,6 +20,8 @@ const DEPARTMENTS = [
 ];
 
 export default function FacultyValidatePage() {
+  const pathname = usePathname();
+  const basePath = pathname.startsWith('/dashboard/spc') ? '/dashboard/spc/validate' : '/dashboard/faculty/validate';
   const [resumes, setResumes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -321,7 +324,7 @@ export default function FacultyValidatePage() {
                     </td>
                     <td className="px-6 py-5 text-right rounded-r-[1.5rem]">
                       <div className="flex justify-end gap-3 translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
-                        <Link href={`/dashboard/faculty/validate/${item.id}`}>
+                        <Link href={`${basePath}/${item.id}`}>
                           <button className="nm-convex p-2 rounded-xl text-primary hover:nm-inset transition-all" title="Review">
                             <Eye size={18} />
                           </button>

@@ -84,7 +84,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           const Icon = item.icon;
 
           return (
-            <Link key={item.href} href={item.href} title={item.title}>
+            <Link key={item.href} href={item.href} title={item.title} onClick={onClose}>
               <div 
                 className={cn(
                   "flex items-center gap-4 px-4 py-3 rounded-2xl transition-all group relative",

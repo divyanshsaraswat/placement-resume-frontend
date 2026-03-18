@@ -2,11 +2,12 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/context/auth-context";
-import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2, FileCode, FilePenLine, Trash2, Send, Download, CheckCircle } from "lucide-react";
+import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2, FileCode, FilePenLine, Trash2, Send, Download, CheckCircle, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { resumeApi } from "@/lib/api";
 import { CreateResumeDialog } from "@/components/dashboard/CreateResumeDialog";
+import { AddVersionDialog } from "@/components/dashboard/AddVersionDialog";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
@@ -16,6 +17,7 @@ export default function StudentResumesPage() {
   const [resumes, setResumes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [versionDialogResume, setVersionDialogResume] = useState<{ id: string; format: string; type: string } | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   
@@ -68,9 +70,9 @@ export default function StudentResumesPage() {
     };
   }, []);
 
-  const handleCreateResume = async (type: string, template: string, format: string, fileUrl?: string) => {
+  const handleCreateResume = async (type: string, template: string, format: string, file?: File) => {
     try {
-      const newResume = await resumeApi.createResume(type, template, format, fileUrl);
+      const newResume = await resumeApi.createResume(type, template, format, file);
       toast.success("Resume version initialized!");
       
       if (format === 'latex') {
@@ -111,6 +113,17 @@ export default function StudentResumesPage() {
     }
   };
 
+  const handleAddVersion = async (resumeId: string, type: string, latexCode: string, format: string, file?: File) => {
+    try {
+      await resumeApi.addVersion(resumeId, type, latexCode, format, file);
+      toast.success("New version added!");
+      fetchResumes();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to add version");
+    }
+  };
+
   const filteredResumes = resumes.filter(resume => {
     const latestVersion = resume.versions[resume.versions.length - 1];
     const matchesSearch = (latestVersion?.type || "Technical Resume")
@@ -130,18 +143,9 @@ export default function StudentResumesPage() {
   return (
     <div className="max-w-6xl mx-auto space-y-16 py-8">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
-        <div className="space-y-1">
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Documents</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 font-light pr-4">Your professional document pipeline and institutional status.</p>
-        </div>
-        <button 
-          onClick={() => setIsCreateOpen(true)}
-          className="w-full sm:w-auto px-6 py-2.5 bg-primary/10 text-primary rounded-full text-sm font-medium hover:bg-primary/20 transition-all flex items-center justify-center gap-2"
-        >
-          <Plus size={18} />
-          <span>New Version</span>
-        </button>
+      <div className="space-y-1">
+        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Documents</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 font-light pr-4">Your professional document pipeline and institutional status.</p>
       </div>
 
       {/* Filters & Search */}
@@ -224,11 +228,26 @@ export default function StudentResumesPage() {
                         </span>
                       )}
                     </div>
-                    <div className={cn(
-                      "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest",
-                      latestVersion?.status === 'approved' ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
-                    )}>
-                      {latestVersion?.status || "draft"}
+                    <div className="flex items-center gap-2">
+                      <div className={cn(
+                        "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest",
+                        latestVersion?.status === 'approved' ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
+                      )}>
+                        {latestVersion?.status || "draft"}
+                      </div>
+                      <button 
+                        ref={el => { buttonRefs.current[resumeId] = el; }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === resumeId ? null : resumeId);
+                        }}
+                        className={cn(
+                          "p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all",
+                          openMenuId === resumeId && "text-primary bg-slate-100 dark:bg-slate-800"
+                        )}
+                      >
+                        <MoreVertical size={16} />
+                      </button>
                     </div>
                   </div>
                   
@@ -238,24 +257,7 @@ export default function StudentResumesPage() {
                       {latestVersion?.type || "Technical Resume"}
                     </h3>
                   </div>
-
-                  <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                     <button 
-                        ref={el => { buttonRefs.current[resumeId] = el; }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(openMenuId === resumeId ? null : resumeId);
-                        }}
-                        className={cn(
-                          "p-2 rounded-xl text-slate-300 hover:text-primary hover:bg-white dark:hover:bg-slate-800 transition-all",
-                          openMenuId === resumeId && "text-primary bg-white dark:bg-slate-800 shadow-sm opacity-100"
-                        )}
-                     >
-                        <MoreVertical size={18} />
-                     </button>
-                  </div>
                 </div>
-                
                 <div className="px-2 flex justify-between items-center text-[11px]">
                    <span className="text-slate-500 dark:text-slate-400 font-light">Score: {latestVersion?.ai_score?.total || "--"}</span>
                    <span className="text-primary/70 dark:text-slate-300 group-hover:text-primary transition-colors font-medium text-[10px] font-bold uppercase tracking-widest">
@@ -291,6 +293,21 @@ export default function StudentResumesPage() {
                         >
                           <FilePenLine size={14} className="text-primary" />
                           <span>View / Edit</span>
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setVersionDialogResume({
+                              id: resumeId,
+                              format: latestVersion?.format || 'latex',
+                              type: latestVersion?.type || 'Technical Resume'
+                            });
+                            setOpenMenuId(null);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:text-blue-600 transition-colors"
+                        >
+                          <Upload size={14} />
+                          <span>Upload New Version</span>
                         </button>
 
                         {(latestVersion?.status === 'draft' || latestVersion?.status === 'rejected') && (
@@ -347,6 +364,17 @@ export default function StudentResumesPage() {
         onClose={() => setIsCreateOpen(false)}
         onCreate={handleCreateResume}
       />
+
+      {versionDialogResume && (
+        <AddVersionDialog
+          isOpen={!!versionDialogResume}
+          onClose={() => setVersionDialogResume(null)}
+          resumeId={versionDialogResume.id}
+          currentFormat={versionDialogResume.format}
+          currentType={versionDialogResume.type}
+          onAddVersion={handleAddVersion}
+        />
+      )}
     </div>
   );
 }

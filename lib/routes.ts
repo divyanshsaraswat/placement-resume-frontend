@@ -19,6 +19,7 @@ export const DEFAULT_LOGIN_REDIRECT = "/dashboard";
 export const ROLE_PATHS: Record<string, string> = {
   student: "/dashboard/student",
   faculty: "/dashboard/faculty",
+  spc: "/dashboard/spc",
   admin: "/dashboard/admin",
 };
 

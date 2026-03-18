@@ -17,16 +17,17 @@ import { resumeApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { EditorHeader } from "@/components/resume/EditorHeader";
 import { AIDrawer } from "@/components/resume/AIDrawer";
+import { DocumentViewer } from "@/components/resume/DocumentViewer";
 
 export default function ResumeEditorPage() {
   const { id } = useParams();
+  const [resumeName, setResumeName] = useState("");
   const [format, setFormat] = useState<string>("latex");
   const [code, setCode] = useState("");
   const [isCompiling, setIsCompiling] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [view, setView] = useState<"code" | "visual">("code");
   const [isAIOpen, setIsAIOpen] = useState(false);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [aiError, setAiError] = useState<string | null>(null);
@@ -37,38 +38,59 @@ export default function ResumeEditorPage() {
   const [leftWidth, setLeftWidth] = useState(60); // percentage
   const [isResizing, setIsResizing] = useState(false);
 
-  useEffect(() => {
-    const fetchResume = async () => {
-      try {
-        const data = await resumeApi.getResume(id as string);
-        const latestVersion = data.versions?.[data.versions.length - 1];
-        if (latestVersion) {
-            setFormat(latestVersion.format || "latex");
-            setCode(latestVersion.latex_code || "");
-            
-            // If it's a PDF/DOCX, set the pdfUrl to its file_url
-            if ((latestVersion.format === 'pdf' || latestVersion.format === 'docx') && latestVersion.file_url) {
-              // Same mock logic: if it doesn't start with http, use dummy
-              const finalUrl = latestVersion.file_url.startsWith('http') 
-                ? latestVersion.file_url 
-                : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
-              setPdfUrl(finalUrl);
-            }
+  const fetchResume = async () => {
+    try {
+      const data = await resumeApi.getResume(id as string);
+      const latestVersion = data.versions?.[data.versions.length - 1];
+      const vCount = data.versions?.length || 1;
+      setResumeName(`${latestVersion?.type || "Technical Resume"} - v${vCount}`);
+      if (latestVersion) {
+          setFormat(latestVersion.format || "latex");
+          setCode(latestVersion.latex_code || "");
+          
+          if ((latestVersion.format === 'pdf' || latestVersion.format === 'docx') && latestVersion.file_url) {
+            const finalUrl = latestVersion.file_url.startsWith('/') 
+              ? latestVersion.file_url 
+              : `/${latestVersion.file_url}`;
+            setPdfUrl(finalUrl);
+          }
 
-            // Load existing AI scores if available
-            if (latestVersion.ai_score) {
-              setScore(latestVersion.ai_score.total);
-              setImpactFeedback(latestVersion.ai_score.impact);
-              setAtsFeedback(latestVersion.ai_score.ats);
-              setSuggestions(latestVersion.ai_score.suggestions || []);
-            }
-        }
-      } catch (err) {
-        console.error(err);
+          if (latestVersion.ai_score) {
+            setScore(latestVersion.ai_score.total);
+            setImpactFeedback(latestVersion.ai_score.impact);
+            setAtsFeedback(latestVersion.ai_score.ats);
+            setSuggestions(latestVersion.ai_score.suggestions || []);
+          }
       }
-    };
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to fetch document state");
+    }
+  };
+
+  useEffect(() => {
     if (id) fetchResume();
   }, [id]);
+
+  const handleReload = () => {
+    if (confirm("Reload from cloud? Unsaved changes will be lost.")) {
+      fetchResume();
+    }
+  };
+
+  const handleDownload = () => {
+    if (!pdfUrl) {
+      toast.error("No document build available to download. Please recompile first.");
+      return;
+    }
+    const link = document.createElement('a');
+    link.href = pdfUrl;
+    link.download = `${resumeName.replace(/\s+/g, '_')}.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Document download initialized");
+  };
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -215,13 +237,12 @@ export default function ResumeEditorPage() {
   return (
     <div className="h-full flex flex-col overflow-hidden relative bg-background">
       <EditorHeader 
-        view={view}
-        onViewChange={setView}
         isSaving={isSaving}
         onSave={handleSave}
         onAIOpen={handleAnalyze}
-        title={format === 'latex' ? "Institutional Technical Resume" : `${format.toUpperCase()} Document Review`}
-        hideViewSwitcher={format !== 'latex'}
+        onReload={handleReload}
+        onDownload={handleDownload}
+        title={resumeName || (format === 'latex' ? "Institutional Technical Resume" : `${format.toUpperCase()} Document Review`)}
       />
 
       {/* Mobile View Switcher */}
@@ -263,51 +284,37 @@ export default function ResumeEditorPage() {
               style={{ width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : `${leftWidth}%` }}
             >
               <div className="flex-1 overflow-hidden relative h-full">
-                {view === "code" ? (
-                  <Editor
-                    height="100%"
-                    language="latex"
-                    theme="institutional-dark"
-                    value={code}
-                    beforeMount={handleEditorWillMount}
-                    onChange={(val) => setCode(val || "")}
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      cursorSmoothCaretAnimation: "on",
-                      smoothScrolling: true,
-                      fontFamily: "var(--font-mono)",
-                      lineNumbers: "on",
-                      padding: { top: 24, bottom: 24 },
-                      glyphMargin: false,
-                      folding: true,
-                      lineDecorationsWidth: 10,
-                      lineNumbersMinChars: 3,
-                      overviewRulerBorder: false,
-                      hideCursorInOverviewRuler: true,
-                      renderLineHighlight: 'all',
-                      scrollbar: {
-                        vertical: 'visible',
-                        horizontal: 'visible',
-                        useShadows: false,
-                        verticalScrollbarSize: 10,
-                        horizontalScrollbarSize: 10
-                      }
-                    }}
-                  />
-                ) : (
-                  <div className="h-full flex items-center justify-center p-10 md:p-20 text-center">
-                     <div className="space-y-4">
-                        <div className="w-16 h-16 rounded-3xl bg-primary/5 flex items-center justify-center text-primary mx-auto">
-                           <FileText size={32} strokeWidth={1} />
-                        </div>
-                        <h3 className="text-xl font-bold tracking-tight">Visual Editor Engine</h3>
-                        <p className="text-muted-foreground text-sm font-light max-w-xs mx-auto">
-                          Form-based editing is currently in maintenance. Please use the Code Editor for precise institutional alignment.
-                        </p>
-                     </div>
-                  </div>
-                )}
+                <Editor
+                  height="100%"
+                  language="latex"
+                  theme="institutional-dark"
+                  value={code}
+                  beforeMount={handleEditorWillMount}
+                  onChange={(val) => setCode(val || "")}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    cursorSmoothCaretAnimation: "on",
+                    smoothScrolling: true,
+                    fontFamily: "var(--font-mono)",
+                    lineNumbers: "on",
+                    padding: { top: 24, bottom: 24 },
+                    glyphMargin: false,
+                    folding: true,
+                    lineDecorationsWidth: 10,
+                    lineNumbersMinChars: 3,
+                    overviewRulerBorder: false,
+                    hideCursorInOverviewRuler: true,
+                    renderLineHighlight: 'all',
+                    scrollbar: {
+                      vertical: 'visible',
+                      horizontal: 'visible',
+                      useShadows: false,
+                      verticalScrollbarSize: 10,
+                      horizontalScrollbarSize: 10
+                    }
+                  }}
+                />
               </div>
             </div>
 
@@ -364,11 +371,9 @@ export default function ResumeEditorPage() {
               {/* PDF Container */}
               <div className="flex-1 p-4 md:p-8 overflow-auto flex justify-center bg-slate-200/20 dark:bg-black/40">
                 {pdfUrl ? (
-                  <iframe 
-                    src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                    className="w-full h-[600px] md:h-[1200px] max-w-3xl bg-white shadow-2xl rounded-sm"
-                    title="Resume Preview"
-                  />
+                  <div className="w-full max-w-4xl h-[600px] md:h-[1200px]">
+                    <DocumentViewer url={pdfUrl} format="pdf" />
+                  </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center text-center space-y-6 opacity-30 my-20">
                      <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border border-dashed border-primary/50 flex items-center justify-center">
@@ -401,19 +406,16 @@ export default function ResumeEditorPage() {
                     </div>
                   </div>
                   
-                  {pdfUrl ? (
-                    <motion.iframe 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                      className="w-full h-[800px] md:h-[1100px] bg-white shadow-[0_30px_70px_rgba(0,0,0,0.15)] rounded-2xl border border-border/60"
-                      title="Document Preview"
-                    />
-                  ) : (
-                    <div className="h-[800px] w-full rounded-2xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground animate-pulse">
-                      Initializing viewer...
-                    </div>
-                  )}
+                  <div className="w-full h-[800px] md:h-[1100px]">
+                    {pdfUrl ? (
+                      <DocumentViewer url={pdfUrl} format={format} />
+                    ) : (
+                      <div className="h-full w-full rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground animate-pulse gap-4">
+                        <Loader2 className="w-8 h-8 animate-spin" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Initializing vault access...</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
              </div>
 

@@ -8,6 +8,7 @@ import { UserRole } from "@/types/auth";
 import { adminApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
+import { AddUserDialog } from "@/components/dashboard/AddUserDialog";
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -15,6 +16,7 @@ export default function UserManagementPage() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState<UserRole | "all">("all");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number, right: number } | null>(null);
   const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
@@ -26,11 +28,15 @@ export default function UserManagementPage() {
       setIsLoading(true);
       const data = await adminApi.getUsers(roleFilter === "all" ? undefined : roleFilter, signal);
       
-      // Local search filtering if backend doesn't support it for this specific endpoint yet
-      // (Backend read_users doesn't support search yet, so we filter locally for now)
-      const filtered = data.filter((u: any) => 
-        u.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        u.email.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      // Map to ensure id is always available (handling both Mongo _id and alias id)
+      const mapped = data.map((u: any) => ({
+        ...u,
+        id: u.id || u._id
+      }));
+
+      const filtered = mapped.filter((u: any) => 
+        u.name?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        u.email?.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
         u.department?.toLowerCase().includes(debouncedSearch.toLowerCase())
       );
       
@@ -53,7 +59,6 @@ export default function UserManagementPage() {
   useLayoutEffect(() => {
     if (openMenuId && buttonRefs.current[openMenuId]) {
       const rect = buttonRefs.current[openMenuId]!.getBoundingClientRect();
-      // Position the menu to the left of the button
       setMenuPosition({
         top: rect.top,
         right: window.innerWidth - rect.left + 12
@@ -114,6 +119,17 @@ export default function UserManagementPage() {
     }
   };
 
+  const handleCreateUser = async (data: any) => {
+    try {
+      await adminApi.createUser(data);
+      toast.success("User created successfully!");
+      fetchUsers();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create user");
+    }
+  };
+
   const roleIcons: Record<string, any> = {
     student: { icon: Shield, color: "text-slate-400" },
     faculty: { icon: ShieldCheck, color: "text-emerald-500" },
@@ -130,7 +146,10 @@ export default function UserManagementPage() {
           <h1 className="text-4xl font-display font-bold text-primary dark:text-blue-500">User Management</h1>
           <p className="text-slate-500 dark:text-slate-400 font-light text-lg">Manage platform users, assign roles, and control access levels.</p>
         </div>
-        <button className="nm-primary h-14 px-8 rounded-2xl flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95 shadow-xl whitespace-nowrap">
+        <button 
+          onClick={() => setIsAddUserOpen(true)}
+          className="nm-primary h-14 px-8 rounded-2xl flex items-center gap-3 transition-all hover:scale-[1.02] active:scale-95 shadow-xl whitespace-nowrap"
+        >
           <UserPlus size={20} />
           <span>Add User</span>
         </button>
@@ -285,62 +304,6 @@ export default function UserManagementPage() {
                         >
                           <MoreVertical size={18} />
                         </button>
-
-                        {/* Portal-based Menu */}
-                        {openMenuId === user.id && menuPosition && typeof document !== 'undefined' && createPortal(
-                          <div className="fixed inset-0 z-[100]">
-                            <div 
-                              className="absolute inset-0 bg-transparent" 
-                              onClick={() => setOpenMenuId(null)}
-                            />
-                            <motion.div
-                              initial={{ opacity: 0, scale: 0.95, x: 20 }}
-                              animate={{ opacity: 1, scale: 1, x: 0 }}
-                              exit={{ opacity: 0, scale: 0.95, x: 20 }}
-                              style={{ 
-                                position: 'fixed',
-                                top: menuPosition.top,
-                                right: menuPosition.right,
-                              }}
-                              className="w-56 nm-flat bg-background rounded-3xl p-3 shadow-2xl border border-white/10 text-left"
-                            >
-                              <div className="space-y-1">
-                                <button
-                                  onClick={() => handleToggleStatus(user)}
-                                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
-                                >
-                                  <Shield size={14} className={user.is_active ? "text-rose-500" : "text-emerald-500"} />
-                                  <span>{user.is_active ? "Deactivate User" : "Activate User"}</span>
-                                </button>
-                                
-                                <div className="h-px bg-border/5 my-1" />
-                                
-                                <p className="px-4 py-2 text-[8px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">Change Role</p>
-                                {roles.filter(r => r !== "all" && r !== user.role).map(role => (
-                                  <button
-                                    key={role}
-                                    onClick={() => handleRoleChange(user.id, role as UserRole)}
-                                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
-                                  >
-                                    <ArrowRight size={14} />
-                                    <span>To {role}</span>
-                                  </button>
-                                ))}
-
-                                <div className="h-px bg-border/5 my-1" />
-
-                                <button
-                                  onClick={() => handleDeleteUser(user.id)}
-                                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-500/5 transition-colors"
-                                >
-                                  <X size={14} />
-                                  <span>Delete Record</span>
-                                </button>
-                              </div>
-                            </motion.div>
-                          </div>,
-                          document.body
-                        )}
                       </div>
                     </td>
                   </motion.tr>
@@ -350,6 +313,75 @@ export default function UserManagementPage() {
           </div>
         )}
       </div>
+
+      {/* Single Portal for Menu */}
+      {openMenuId && menuPosition && typeof document !== 'undefined' && createPortal(
+        <div className="fixed inset-0 z-[100]">
+          <div 
+            className="absolute inset-0 bg-transparent" 
+            onClick={() => setOpenMenuId(null)}
+          />
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, x: 20 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.95, x: 20 }}
+            style={{ 
+              position: 'fixed',
+              top: menuPosition.top,
+              right: menuPosition.right,
+            }}
+            className="w-56 nm-flat bg-background rounded-3xl p-3 shadow-2xl border border-white/10 text-left"
+          >
+            {(() => {
+              const activeUser = users.find(u => u.id === openMenuId);
+              if (!activeUser) return null;
+              
+              return (
+                <div className="space-y-1">
+                  <button
+                    onClick={() => handleToggleStatus(activeUser)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
+                  >
+                    <Shield size={14} className={activeUser.is_active ? "text-rose-500" : "text-emerald-500"} />
+                    <span>{activeUser.is_active ? "Deactivate User" : "Activate User"}</span>
+                  </button>
+                  
+                  <div className="h-px bg-border/5 my-1" />
+                  
+                  <p className="px-4 py-2 text-[8px] font-bold text-muted-foreground/40 uppercase tracking-[0.2em]">Change Role</p>
+                  {roles.filter(r => r !== "all" && r !== activeUser.role).map(role => (
+                    <button
+                      key={role}
+                      onClick={() => handleRoleChange(activeUser.id, role as UserRole)}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+                    >
+                      <ArrowRight size={14} />
+                      <span>To {role}</span>
+                    </button>
+                  ))}
+
+                  <div className="h-px bg-border/5 my-1" />
+
+                  <button
+                    onClick={() => handleDeleteUser(activeUser.id)}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-500/5 transition-colors"
+                  >
+                    <X size={14} />
+                    <span>Delete Record</span>
+                  </button>
+                </div>
+              );
+            })()}
+          </motion.div>
+        </div>,
+        document.body
+      )}
+
+      <AddUserDialog 
+        isOpen={isAddUserOpen}
+        onClose={() => setIsAddUserOpen(false)}
+        onSubmit={handleCreateUser}
+      />
     </div>
   );
 }
