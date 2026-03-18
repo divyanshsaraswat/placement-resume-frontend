@@ -128,8 +128,37 @@ export const resumeApi = {
     const response = await api.post("/ai/score-resume", { resume_text: content }, { signal });
     return response.data;
   },
-  streamChat: async (messages: { role: string; content: string }[], onChunk: (chunk: string) => void) => {
-    // ... same as before
+  streamChat: async (messages: { role: string; content: string }[], onChunk: (chunk: string) => void, resume_content?: string) => {
+    const response = await fetch(`${API_BASE_URL}/ai/chat/stream`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
+      },
+      body: JSON.stringify({ messages, resume_content }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const reader = response.body?.getReader();
+    if (!reader) return;
+
+    const decoder = new TextDecoder();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n");
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          const data = line.slice(6);
+          if (data) onChunk(data);
+        }
+      }
+    }
   },
   getValidationQueue: async (params: { search?: string; year?: number | number[]; department?: string|string[]; group?: string; limit?: number }, signal?: AbortSignal) => {
     // ... same as before

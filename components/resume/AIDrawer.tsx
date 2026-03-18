@@ -24,6 +24,7 @@ interface AIDrawerProps {
   isLoading?: boolean;
   error?: string | null;
   onRetry?: () => void;
+  resumeContent?: string;
 }
 
 export function AIDrawer({ 
@@ -35,7 +36,8 @@ export function AIDrawer({
   atsFeedback, 
   isLoading, 
   error,
-  onRetry
+  onRetry,
+  resumeContent
 }: AIDrawerProps) {
   const [messages, setMessages] = useState<Message[]>([
     { role: "ai", content: "Hello! I'm your institutional AI companion. How can I help refine your LaTeX resume today?" }
@@ -72,7 +74,7 @@ export function AIDrawer({
           }
           return newMsgs;
         });
-      });
+      }, resumeContent);
     } catch (err) {
       setMessages(prev => [
         ...prev.slice(0, -1),

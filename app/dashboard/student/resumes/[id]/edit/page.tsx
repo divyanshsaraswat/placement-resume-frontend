@@ -511,6 +511,7 @@ export default function ResumeEditorPage() {
         isLoading={isAnalyzing}
         error={aiError}
         onRetry={handleAnalyze}
+        resumeContent={code}
       />
     </div>
   );
