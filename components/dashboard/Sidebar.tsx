@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { dashboardNavItems } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-import { Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Sparkles, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -46,29 +46,35 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
         className={cn(
-          "h-screen fixed lg:sticky top-0 left-0 flex flex-col z-50 bg-white dark:bg-[#020617] border-r border-border shadow-2xl lg:shadow-none",
+          "h-screen fixed lg:sticky top-0 left-0 flex flex-col z-[70] bg-white dark:bg-[#020617] border-r border-border shadow-2xl lg:shadow-none",
           !isOpen && "hidden lg:flex"
         )}
       >
       {/* Sidebar Header */}
       <div className="p-8 flex items-center justify-between">
-        {!isCollapsed && (
-          <motion.div 
-            initial={{ opacity: 0, x: -10 }}
-            animate={{ opacity: 1, x: 0 }}
-            className="flex items-center gap-3 text-primary"
-          >
-            <div className="bg-primary/10 p-2 rounded-xl">
-              <Sparkles size={20} strokeWidth={1} />
-            </div>
-            <span className="font-semibold tracking-tight text-xl text-foreground">Matrix</span>
-          </motion.div>
-        )}
-        {isCollapsed && (
-          <div className="bg-primary/10 p-2 rounded-xl mx-auto text-primary">
+        <div className="flex items-center gap-3 text-primary">
+          <div className="bg-primary/10 p-2 rounded-xl">
             <Sparkles size={20} strokeWidth={1} />
           </div>
-        )}
+          {!isCollapsed && (
+            <motion.span 
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="font-semibold tracking-tight text-xl text-foreground"
+            >
+              Matrix
+            </motion.span>
+          )}
+        </div>
+
+        {/* Mobile Close Button */}
+        <button 
+          onClick={onClose}
+          className="p-2 -mr-2 text-slate-400 hover:text-primary transition-colors lg:hidden"
+          aria-label="Close sidebar"
+        >
+          <X size={20} strokeWidth={1.5} />
+        </button>
       </div>
 
       {/* Nav Items */}
@@ -103,8 +109,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         })}
       </nav>
 
-      {/* Footer Toggle */}
-      <div className="p-6 mt-auto">
+      {/* Footer Toggle - Strictly desktop only (2xl+) */}
+      <div className="p-6 mt-auto hidden 2xl:block">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="w-full h-11 rounded-2xl bg-slate-100/50 dark:bg-slate-900/50 transition-all hover:bg-primary/10 hover:text-primary flex items-center justify-center text-slate-400 dark:text-slate-500 group border border-transparent hover:border-primary/20"

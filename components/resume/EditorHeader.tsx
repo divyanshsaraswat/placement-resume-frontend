@@ -21,9 +21,18 @@ interface EditorHeaderProps {
   onSave: () => void;
   onAIOpen: () => void;
   title: string;
+  hideViewSwitcher?: boolean;
 }
 
-export function EditorHeader({ view, onViewChange, isSaving, onSave, onAIOpen, title }: EditorHeaderProps) {
+export function EditorHeader({ 
+  view, 
+  onViewChange, 
+  isSaving, 
+  onSave, 
+  onAIOpen, 
+  title,
+  hideViewSwitcher 
+}: EditorHeaderProps) {
   return (
     <div className="h-16 border-b border-border bg-background flex items-center justify-between px-4 md:px-6 z-50">
       {/* Left Area: Project Title & Back Button */}
@@ -46,34 +55,36 @@ export function EditorHeader({ view, onViewChange, isSaving, onSave, onAIOpen, t
       </div>
 
       {/* Middle Area: View Switching (Overleaf Style) - Hidden on extra small mobile */}
-      <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-border/50 shadow-inner scale-90 md:scale-100">
-        <button
-          onClick={() => onViewChange("code")}
-          className={cn(
-            "flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all",
-            view === "code" 
-              ? "bg-white dark:bg-slate-800 text-primary shadow-sm shadow-black/5" 
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Code2 size={14} />
-          <span className="hidden md:inline">Code Editor</span>
-          <span className="md:hidden">Code</span>
-        </button>
-        <button
-          onClick={() => onViewChange("visual")}
-          className={cn(
-            "flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all",
-            view === "visual" 
-              ? "bg-white dark:bg-slate-800 text-primary shadow-sm shadow-black/5" 
-              : "text-muted-foreground hover:text-foreground"
-          )}
-        >
-          <Eye size={14} />
-          <span className="hidden md:inline">Visual Editor</span>
-          <span className="md:hidden">Visual</span>
-        </button>
-      </div>
+      {!hideViewSwitcher && (
+        <div className="hidden sm:flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-border/50 shadow-inner scale-90 md:scale-100">
+          <button
+            onClick={() => onViewChange("code")}
+            className={cn(
+              "flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all",
+              view === "code" 
+                ? "bg-white dark:bg-slate-800 text-primary shadow-sm shadow-black/5" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Code2 size={14} />
+            <span className="hidden md:inline">Code Editor</span>
+            <span className="md:hidden">Code</span>
+          </button>
+          <button
+            onClick={() => onViewChange("visual")}
+            className={cn(
+              "flex items-center gap-2 px-3 md:px-4 py-1.5 rounded-lg text-[10px] md:text-xs font-bold transition-all",
+              view === "visual" 
+                ? "bg-white dark:bg-slate-800 text-primary shadow-sm shadow-black/5" 
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Eye size={14} />
+            <span className="hidden md:inline">Visual Editor</span>
+            <span className="md:hidden">Visual</span>
+          </button>
+        </div>
+      )}
 
       {/* Right Area: Main Actions */}
       <div className="flex items-center gap-2 md:gap-4 font-mono">

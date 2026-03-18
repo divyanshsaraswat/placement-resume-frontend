@@ -25,8 +25,8 @@ export default function SPCStudentsPage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"year" | "branch">("year");
   const [filters, setFilters] = useState({
-    year: undefined as number | undefined,
-    department: undefined as string | undefined,
+    years: [] as number[],
+    departments: [] as string[],
   });
 
   const debouncedSearch = useDebounce(search, 500);
@@ -36,8 +36,8 @@ export default function SPCStudentsPage() {
       setIsLoading(true);
       const data = await adminApi.getStudents({
         search: debouncedSearch,
-        year: filters.year,
-        department: filters.department
+        year: filters.years.length > 0 ? filters.years : undefined,
+        department: filters.departments.length > 0 ? filters.departments : undefined
       }, signal);
       setStudents(data);
     } catch (err: any) {
@@ -54,6 +54,8 @@ export default function SPCStudentsPage() {
     fetchStudents(controller.signal);
     return () => controller.abort();
   }, [fetchStudents]);
+
+  const activeFiltersCount = filters.years.length + filters.departments.length;
 
   const statusColors: Record<string, string> = {
     approved: "text-emerald-500 bg-emerald-500/10",
@@ -74,10 +76,10 @@ export default function SPCStudentsPage() {
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: "Total Students", value: students.length > 0 ? "248" : "0", icon: Users, color: "text-primary" },
-          { label: "Validated", value: students.length > 0 ? "156" : "0", icon: CheckCircle, color: "text-emerald-500" },
-          { label: "Pending", value: students.length > 0 ? "42" : "0", icon: Clock, color: "text-amber-500" },
-          { label: "Not Started", value: students.length > 0 ? "50" : "0", icon: XCircle, color: "text-slate-400" },
+          { label: "Total Students", value: students.length.toString(), icon: Users, color: "text-primary" },
+          { label: "Validated", value: "156", icon: CheckCircle, color: "text-emerald-500" },
+          { label: "Pending", value: "42", icon: Clock, color: "text-amber-500" },
+          { label: "Not Started", value: "50", icon: XCircle, color: "text-slate-400" },
         ].map((stat, i) => (
           <div key={i} className="nm-flat p-6 rounded-3xl flex items-center justify-between">
             <div className="space-y-1">
@@ -108,12 +110,17 @@ export default function SPCStudentsPage() {
              <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={cn(
-                "nm-convex px-6 py-3 rounded-2xl flex items-center gap-2 text-sm transition-all h-12",
-                (filters.year || filters.department) ? "text-primary nm-inset" : "text-muted-foreground hover:nm-inset"
+                "nm-convex px-6 py-3 rounded-2xl flex items-center gap-2 text-sm transition-all h-12 relative",
+                activeFiltersCount > 0 ? "text-primary nm-inset" : "text-muted-foreground hover:nm-inset"
               )}
              >
                <Filter size={18} />
                <span>Filters</span>
+               {activeFiltersCount > 0 && (
+                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] flex items-center justify-center rounded-full shadow-lg">
+                   {activeFiltersCount}
+                 </span>
+               )}
              </button>
              
              {/* Filter Dialog */}
@@ -160,7 +167,7 @@ export default function SPCStudentsPage() {
                         </div>
                       </div>
 
-                      <div className="min-h-[180px]">
+                      <div className="min-height-[240px]">
                         <AnimatePresence mode="wait">
                           {activeTab === "year" ? (
                             <motion.div 
@@ -170,19 +177,25 @@ export default function SPCStudentsPage() {
                               exit={{ opacity: 0, x: 10 }}
                               className="space-y-4"
                             >
-                              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4">Select Academic Year</p>
+                              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4 flex justify-between">
+                                <span>Select Academic Years</span>
+                                {filters.years.length > 0 && <span className="text-primary">{filters.years.length} selected</span>}
+                              </p>
                               <div className="grid grid-cols-2 gap-3">
-                                {[3, 4].map(y => (
+                                {[1, 2, 3, 4, 5].map(y => (
                                   <button 
                                     key={y}
-                                    onClick={() => setFilters(f => ({ ...f, year: f.year === y ? undefined : y }))}
+                                    onClick={() => setFilters(f => ({ 
+                                      ...f, 
+                                      years: f.years.includes(y) ? f.years.filter(year => year !== y) : [...f.years, y] 
+                                    }))}
                                     className={cn(
                                       "py-4 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-1",
-                                      filters.year === y ? "nm-inset text-primary" : "nm-convex text-muted-foreground hover:text-primary"
+                                      filters.years.includes(y) ? "nm-inset text-primary" : "nm-convex text-muted-foreground hover:text-primary"
                                     )}
                                   >
                                     <span className="text-lg">{y}</span>
-                                    <span>{y === 3 ? "3rd" : "4th"} Year</span>
+                                    <span>{y === 1 ? "1st" : y === 2 ? "2nd" : y === 3 ? "3rd" : y === 4 ? "4th" : "5th"} Year</span>
                                   </button>
                                 ))}
                               </div>
@@ -195,15 +208,21 @@ export default function SPCStudentsPage() {
                               exit={{ opacity: 0, x: -10 }}
                               className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar"
                             >
-                              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4">Select Department</p>
+                              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4 flex justify-between">
+                                <span>Select Departments</span>
+                                {filters.departments.length > 0 && <span className="text-primary">{filters.departments.length} selected</span>}
+                              </p>
                               <div className="space-y-2">
                                 {DEPARTMENTS.map(dept => (
                                   <button 
                                     key={dept}
-                                    onClick={() => setFilters(f => ({ ...f, department: f.department === dept ? undefined : dept }))}
+                                    onClick={() => setFilters(f => ({ 
+                                      ...f, 
+                                      departments: f.departments.includes(dept) ? f.departments.filter(d => d !== dept) : [...f.departments, dept] 
+                                    }))}
                                     className={cn(
                                       "w-full px-4 py-3 rounded-xl text-[10px] text-left font-bold transition-all",
-                                      filters.department === dept ? "nm-inset text-primary" : "nm-convex text-muted-foreground hover:text-primary"
+                                      filters.departments.includes(dept) ? "nm-inset text-primary" : "nm-convex text-muted-foreground hover:text-primary"
                                     )}
                                   >
                                     {dept}
@@ -217,7 +236,7 @@ export default function SPCStudentsPage() {
 
                       <div className="flex justify-between items-center pt-4 border-t border-border/10">
                         <button 
-                          onClick={() => setFilters({ year: undefined, department: undefined })}
+                          onClick={() => setFilters({ years: [], departments: [] })}
                           className="text-[10px] text-muted-foreground hover:text-primary font-bold uppercase tracking-wider"
                         >
                           Reset
@@ -281,7 +300,9 @@ export default function SPCStudentsPage() {
                     <td className="px-6 py-5">
                       <div className="space-y-1">
                         <p className="text-xs font-medium">{student.department}</p>
-                        <p className="text-[10px] text-muted-foreground">{student.year}rd Year</p>
+                        <p className="text-[10px] text-muted-foreground">
+                          {student.year === 1 ? "1st" : student.year === 2 ? "2nd" : student.year === 3 ? "3rd" : student.year === 4 ? "4th" : "5th"} Year
+                        </p>
                       </div>
                     </td>
                     <td className="px-6 py-5 text-center">

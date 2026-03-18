@@ -5,9 +5,13 @@ import Editor from "@monaco-editor/react";
 import { 
   FileText,
   Loader2,
-  Play
+  Play,
+  Sparkles,
+  CheckCircle,
+  FileCode
 } from "lucide-react";
-import { useParams } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
+import { useParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { resumeApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -16,6 +20,7 @@ import { AIDrawer } from "@/components/resume/AIDrawer";
 
 export default function ResumeEditorPage() {
   const { id } = useParams();
+  const [format, setFormat] = useState<string>("latex");
   const [code, setCode] = useState("");
   const [isCompiling, setIsCompiling] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -38,7 +43,25 @@ export default function ResumeEditorPage() {
         const data = await resumeApi.getResume(id as string);
         const latestVersion = data.versions?.[data.versions.length - 1];
         if (latestVersion) {
+            setFormat(latestVersion.format || "latex");
             setCode(latestVersion.latex_code || "");
+            
+            // If it's a PDF/DOCX, set the pdfUrl to its file_url
+            if ((latestVersion.format === 'pdf' || latestVersion.format === 'docx') && latestVersion.file_url) {
+              // Same mock logic: if it doesn't start with http, use dummy
+              const finalUrl = latestVersion.file_url.startsWith('http') 
+                ? latestVersion.file_url 
+                : 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf';
+              setPdfUrl(finalUrl);
+            }
+
+            // Load existing AI scores if available
+            if (latestVersion.ai_score) {
+              setScore(latestVersion.ai_score.total);
+              setImpactFeedback(latestVersion.ai_score.impact);
+              setAtsFeedback(latestVersion.ai_score.ats);
+              setSuggestions(latestVersion.ai_score.suggestions || []);
+            }
         }
       } catch (err) {
         console.error(err);
@@ -197,168 +220,283 @@ export default function ResumeEditorPage() {
         isSaving={isSaving}
         onSave={handleSave}
         onAIOpen={handleAnalyze}
-        title="Institutional Technical Resume"
+        title={format === 'latex' ? "Institutional Technical Resume" : `${format.toUpperCase()} Document Review`}
+        hideViewSwitcher={format !== 'latex'}
       />
 
       {/* Mobile View Switcher */}
-      <div className="flex md:hidden border-b border-border bg-slate-50 dark:bg-slate-900/50 p-1">
-         <button 
-           onClick={() => setMobileView("editor")}
-           className={cn(
-             "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
-             mobileView === "editor" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-muted-foreground"
-           )}
-         >
-           Editor
-         </button>
-         <button 
-           onClick={() => setMobileView("preview")}
-           className={cn(
-             "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
-             mobileView === "preview" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-muted-foreground"
-           )}
-         >
-           Preview
-         </button>
-      </div>
+      {format === 'latex' && (
+        <div className="flex md:hidden border-b border-border bg-slate-50 dark:bg-slate-900/50 p-1">
+           <button 
+             onClick={() => setMobileView("editor")}
+             className={cn(
+               "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+               mobileView === "editor" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-muted-foreground"
+             )}
+           >
+             Editor
+           </button>
+           <button 
+             onClick={() => setMobileView("preview")}
+             className={cn(
+               "flex-1 py-2 text-[10px] font-bold uppercase tracking-widest rounded-lg transition-all",
+               mobileView === "preview" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-muted-foreground"
+             )}
+           >
+             Preview
+           </button>
+        </div>
+      )}
 
       <main className={cn(
         "flex-1 flex flex-col md:flex-row min-h-0 bg-slate-50/30 dark:bg-black/20",
-        isResizing && "select-none"
+        format === 'latex' && isResizing && "select-none"
       )}>
-        {/* Left Pane: Editor */}
-        <div 
-          className={cn(
-            "border-r border-border bg-background flex flex-col relative overflow-hidden h-full transition-all duration-300",
-            mobileView === "editor" ? "flex" : "hidden md:flex"
-          )}
-          style={{ width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : `${leftWidth}%` }}
-        >
-          <div className="flex-1 overflow-hidden relative h-full">
-            {view === "code" ? (
-              <Editor
-                height="100%"
-                language="latex"
-                theme="institutional-dark"
-                value={code}
-                beforeMount={handleEditorWillMount}
-                onChange={(val) => setCode(val || "")}
-                options={{
-                  minimap: { enabled: false },
-                  fontSize: 14,
-                  cursorSmoothCaretAnimation: "on",
-                  smoothScrolling: true,
-                  fontFamily: "var(--font-mono)",
-                  lineNumbers: "on",
-                  padding: { top: 24, bottom: 24 },
-                  glyphMargin: false,
-                  folding: true,
-                  lineDecorationsWidth: 10,
-                  lineNumbersMinChars: 3,
-                  overviewRulerBorder: false,
-                  hideCursorInOverviewRuler: true,
-                  renderLineHighlight: 'all',
-                  scrollbar: {
-                    vertical: 'visible',
-                    horizontal: 'visible',
-                    useShadows: false,
-                    verticalScrollbarSize: 10,
-                    horizontalScrollbarSize: 10
-                  }
-                }}
-              />
-            ) : (
-              <div className="h-full flex items-center justify-center p-10 md:p-20 text-center">
-                 <div className="space-y-4">
-                    <div className="w-16 h-16 rounded-3xl bg-primary/5 flex items-center justify-center text-primary mx-auto">
-                       <FileText size={32} strokeWidth={1} />
-                    </div>
-                    <h3 className="text-xl font-bold tracking-tight">Visual Editor Engine</h3>
-                    <p className="text-muted-foreground text-sm font-light max-w-xs mx-auto">
-                      Form-based editing is currently in maintenance. Please use the Code Editor for precise institutional alignment.
-                    </p>
+        {format === 'latex' ? (
+          <>
+            {/* Left Pane: Editor */}
+            <div 
+              className={cn(
+                "border-r border-border bg-background flex flex-col relative overflow-hidden h-full transition-all duration-300",
+                mobileView === "editor" ? "flex" : "hidden md:flex"
+              )}
+              style={{ width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : `${leftWidth}%` }}
+            >
+              <div className="flex-1 overflow-hidden relative h-full">
+                {view === "code" ? (
+                  <Editor
+                    height="100%"
+                    language="latex"
+                    theme="institutional-dark"
+                    value={code}
+                    beforeMount={handleEditorWillMount}
+                    onChange={(val) => setCode(val || "")}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      cursorSmoothCaretAnimation: "on",
+                      smoothScrolling: true,
+                      fontFamily: "var(--font-mono)",
+                      lineNumbers: "on",
+                      padding: { top: 24, bottom: 24 },
+                      glyphMargin: false,
+                      folding: true,
+                      lineDecorationsWidth: 10,
+                      lineNumbersMinChars: 3,
+                      overviewRulerBorder: false,
+                      hideCursorInOverviewRuler: true,
+                      renderLineHighlight: 'all',
+                      scrollbar: {
+                        vertical: 'visible',
+                        horizontal: 'visible',
+                        useShadows: false,
+                        verticalScrollbarSize: 10,
+                        horizontalScrollbarSize: 10
+                      }
+                    }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center p-10 md:p-20 text-center">
+                     <div className="space-y-4">
+                        <div className="w-16 h-16 rounded-3xl bg-primary/5 flex items-center justify-center text-primary mx-auto">
+                           <FileText size={32} strokeWidth={1} />
+                        </div>
+                        <h3 className="text-xl font-bold tracking-tight">Visual Editor Engine</h3>
+                        <p className="text-muted-foreground text-sm font-light max-w-xs mx-auto">
+                          Form-based editing is currently in maintenance. Please use the Code Editor for precise institutional alignment.
+                        </p>
+                     </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Resizable Divider - Hidden on Mobile */}
+            <div 
+              onMouseDown={() => setIsResizing(true)}
+              className={cn(
+                "hidden md:flex w-1 group relative cursor-col-resize hover:bg-primary/30 transition-colors z-10 items-center justify-center",
+                isResizing && "bg-primary/50"
+              )}
+            >
+               <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 left-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-slate-900 border border-border p-1 rounded-full flex flex-col gap-1 shadow-xl shadow-black/20">
+                     <div className="flex gap-1 px-1 py-1">
+                        <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px] text-white">
+                          ←
+                        </div>
+                        <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px] text-white">
+                          →
+                        </div>
+                     </div>
+                     <div className="flex flex-col gap-0.5 items-center pb-1">
+                        <div className="w-0.5 h-0.5 rounded-full bg-slate-600" />
+                        <div className="w-0.5 h-0.5 rounded-full bg-slate-600" />
+                        <div className="w-0.5 h-0.5 rounded-full bg-slate-600" />
+                     </div>
+                  </div>
+               </div>
+            </div>
+
+            {/* Right Pane: Preview */}
+            <div className={cn(
+              "flex-1 flex flex-col bg-slate-100/50 dark:bg-slate-900/40 relative overflow-hidden transition-all duration-300",
+              mobileView === "preview" ? "flex" : "hidden md:flex"
+            )}>
+              {/* Preview Toolbar */}
+              <div className="h-12 border-b border-border/50 bg-white/50 dark:bg-slate-800/30 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10">
+                 <div className="flex items-center gap-2">
+                    <button 
+                      onClick={handleCompile}
+                      disabled={isCompiling}
+                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                    >
+                      {isCompiling ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Play size={12} />
+                      )}
+                      Recompile
+                    </button>
                  </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Resizable Divider - Hidden on Mobile */}
-        <div 
-          onMouseDown={() => setIsResizing(true)}
-          className={cn(
-            "hidden md:flex w-1 group relative cursor-col-resize hover:bg-primary/30 transition-colors z-10 items-center justify-center",
-            isResizing && "bg-primary/50"
-          )}
-        >
-           <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 left-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="bg-slate-900 border border-border p-1 rounded-full flex flex-col gap-1 shadow-xl shadow-black/20">
-                 <div className="flex gap-1 px-1 py-1">
-                    <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px] text-white">
-                      ←
-                    </div>
-                    <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px] text-white">
-                      →
-                    </div>
-                 </div>
-                 <div className="flex flex-col gap-0.5 items-center pb-1">
-                    <div className="w-0.5 h-0.5 rounded-full bg-slate-600" />
-                    <div className="w-0.5 h-0.5 rounded-full bg-slate-600" />
-                    <div className="w-0.5 h-0.5 rounded-full bg-slate-600" />
-                 </div>
+              {/* PDF Container */}
+              <div className="flex-1 p-4 md:p-8 overflow-auto flex justify-center bg-slate-200/20 dark:bg-black/40">
+                {pdfUrl ? (
+                  <iframe 
+                    src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                    className="w-full h-[600px] md:h-[1200px] max-w-3xl bg-white shadow-2xl rounded-sm"
+                    title="Resume Preview"
+                  />
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center space-y-6 opacity-30 my-20">
+                     <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border border-dashed border-primary/50 flex items-center justify-center">
+                        <FileText strokeWidth={0.5} className="text-primary w-8 h-8 md:w-12 md:h-12" />
+                     </div>
+                     <div className="space-y-2">
+                        <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Awaiting Build</p>
+                        <p className="text-[10px] font-light text-muted-foreground">Perform a recompile to render the <br /> institutional document preview</p>
+                     </div>
+                  </div>
+                )}
               </div>
-           </div>
-        </div>
-
-        {/* Right Pane: Preview */}
-        <div className={cn(
-          "flex-1 flex flex-col bg-slate-100/50 dark:bg-slate-900/40 relative overflow-hidden transition-all duration-300",
-          mobileView === "preview" ? "flex" : "hidden md:flex"
-        )}>
-          {/* Preview Toolbar */}
-          <div className="h-12 border-b border-border/50 bg-white/50 dark:bg-slate-800/30 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10">
-             <div className="flex items-center gap-2">
-                <button 
-                  onClick={handleCompile}
-                  disabled={isCompiling}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 transition-colors disabled:opacity-50"
-                >
-                  {isCompiling ? (
-                    <Loader2 size={12} className="animate-spin" />
+            </div>
+          </>
+        ) : (
+          /* PDF/DOCX Review Layout */
+          <div className="flex-1 flex flex-col md:flex-row overflow-hidden w-full">
+             {/* Left: Enhanced Viewer */}
+             <div className="flex-[3] h-full overflow-y-auto bg-slate-100 dark:bg-slate-950/40 p-4 md:p-12 flex justify-center custom-scrollbar">
+                <div className="w-full max-w-4xl space-y-8">
+                  <div className="flex items-center justify-between px-2">
+                    <div className="space-y-1">
+                      <h3 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white uppercase tracking-[0.1em]">Verification Preview</h3>
+                      <p className="text-[11px] text-slate-400 font-medium">Original {format.toUpperCase()} record as initialized.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20">
+                        Institutional Match
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {pdfUrl ? (
+                    <motion.iframe 
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
+                      className="w-full h-[800px] md:h-[1100px] bg-white shadow-[0_30px_70px_rgba(0,0,0,0.15)] rounded-2xl border border-border/60"
+                      title="Document Preview"
+                    />
                   ) : (
-                    <Play size={12} />
+                    <div className="h-[800px] w-full rounded-2xl border-2 border-dashed border-border flex items-center justify-center text-muted-foreground animate-pulse">
+                      Initializing viewer...
+                    </div>
                   )}
-                  Recompile
-                </button>
+                </div>
              </div>
-             <div className="hidden sm:flex items-center gap-4 text-muted-foreground">
-                <div className="text-[10px] font-bold uppercase tracking-widest">Page 1 / 1</div>
-                <div className="w-px h-4 bg-border/50" />
-                <div className="text-[10px] font-bold uppercase tracking-widest">85% Zoom</div>
-             </div>
-          </div>
 
-          {/* PDF Container */}
-          <div className="flex-1 p-4 md:p-8 overflow-auto flex justify-center bg-slate-200/20 dark:bg-black/40">
-            {pdfUrl ? (
-              <iframe 
-                src={`${pdfUrl}#toolbar=0&navpanes=0&scrollbar=0`}
-                className="w-full h-[600px] md:h-[1200px] max-w-3xl bg-white shadow-2xl rounded-sm"
-                title="Resume Preview"
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center text-center space-y-6 opacity-30 my-20">
-                 <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border border-dashed border-primary/50 flex items-center justify-center">
-                    <FileText strokeWidth={0.5} className="text-primary w-8 h-8 md:w-12 md:h-12" />
-                 </div>
-                 <div className="space-y-2">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Awaiting Build</p>
-                    <p className="text-[10px] font-light text-muted-foreground">Perform a recompile to render the <br /> institutional document preview</p>
-                 </div>
-              </div>
-            )}
+             {/* Right: Inline AI Review Panel */}
+             <div className="flex-[2] h-full border-l border-border bg-white dark:bg-slate-900/30 overflow-y-auto custom-scrollbar p-10 space-y-10">
+                <div className="space-y-1">
+                  <h4 className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
+                    <Sparkles size={14} className="animate-pulse" />
+                    Strategic Assessment
+                  </h4>
+                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Institutional Review Dashboard</p>
+                </div>
+
+                {isAnalyzing ? (
+                  <div className="py-20 flex flex-col items-center justify-center space-y-4">
+                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">Running AI Synthesis...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-10">
+                    {/* Score Card */}
+                    {score !== null && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden group shadow-sm"
+                      >
+                         <div className="relative z-10">
+                            <span className={cn(
+                              "text-6xl font-black tracking-tighter",
+                              score > 80 ? "text-emerald-500" : score > 60 ? "text-amber-500" : "text-rose-500"
+                            )}>
+                              {score}
+                            </span>
+                            <sub className="text-muted-foreground text-sm font-bold ml-1">/100</sub>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-3">Readiness Index</p>
+                         </div>
+                      </motion.div>
+                    )}
+
+                    {/* Metrics */}
+                    <div className="grid grid-cols-1 gap-4">
+                       {impactFeedback && (
+                         <div className="p-6 rounded-3xl bg-emerald-50/30 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 space-y-2">
+                           <h5 className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">Leadership Impact</h5>
+                           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{impactFeedback}</p>
+                         </div>
+                       )}
+                       {atsFeedback && (
+                         <div className="p-6 rounded-3xl bg-indigo-50/30 dark:bg-indigo-950/10 border border-indigo-100/50 dark:border-indigo-900/20 space-y-2">
+                           <h5 className="text-[10px] font-black text-indigo-600 dark:text-indigo-500 uppercase tracking-widest">System Optimization</h5>
+                           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{atsFeedback}</p>
+                         </div>
+                       )}
+                    </div>
+
+                    {/* Suggestions */}
+                    <div className="space-y-6">
+                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Actionable Intelligence</h4>
+                      <div className="space-y-4">
+                         {suggestions.length > 0 ? suggestions.map((s, i) => (
+                           <motion.div 
+                             key={i}
+                             initial={{ opacity: 0, x: 20 }}
+                             animate={{ opacity: 1, x: 0 }}
+                             transition={{ delay: i * 0.1 }}
+                             className="bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 leading-relaxed relative pl-12"
+                           >
+                              <div className="absolute left-5 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary/30" />
+                              {s}
+                           </motion.div>
+                         )) : (
+                           <div className="py-12 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl text-center">
+                              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No critical failures</p>
+                           </div>
+                         )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+             </div>
           </div>
-        </div>
+        )}
       </main>
 
       <AIDrawer 

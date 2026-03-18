@@ -25,8 +25,8 @@ export default function FacultyValidatePage() {
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"year" | "branch">("year");
   const [filters, setFilters] = useState({
-    year: undefined as number | undefined,
-    department: undefined as string | undefined,
+    years: [] as number[],
+    departments: [] as string[],
     group: undefined as string | undefined, // "engineering" or undefined
   });
 
@@ -37,8 +37,8 @@ export default function FacultyValidatePage() {
       setIsLoading(true);
       const data = await resumeApi.getValidationQueue({
         search: debouncedSearch,
-        year: filters.year,
-        department: filters.department,
+        year: filters.years.length > 0 ? filters.years : undefined,
+        department: filters.departments.length > 0 ? filters.departments : undefined,
         group: filters.group
       }, signal);
       setResumes(data);
@@ -56,6 +56,8 @@ export default function FacultyValidatePage() {
     fetchQueue(controller.signal);
     return () => controller.abort();
   }, [fetchQueue]);
+
+  const activeFiltersCount = filters.years.length + filters.departments.length + (filters.group ? 1 : 0);
 
   const statusColors: Record<string, string> = {
     approved: "text-emerald-500 bg-emerald-500/10",
@@ -75,7 +77,7 @@ export default function FacultyValidatePage() {
       {/* Stats Overview (Static for now) */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: "Pending", value: "12", icon: Clock, color: "text-amber-500" },
+          { label: "Pending", value: resumes.length.toString(), icon: Clock, color: "text-amber-500" },
           { label: "Approved Today", value: "45", icon: CheckCircle, color: "text-emerald-500" },
           { label: "Avg. Score", value: "78%", icon: ArrowRight, color: "text-primary" },
           { label: "Flagged", value: "3", icon: XCircle, color: "text-rose-500" },
@@ -109,12 +111,17 @@ export default function FacultyValidatePage() {
              <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={cn(
-                "nm-convex px-6 py-3 rounded-2xl flex items-center gap-2 text-sm transition-all",
-                (filters.year || filters.department || filters.group) ? "text-primary nm-inset" : "text-muted-foreground hover:nm-inset"
+                "nm-convex px-6 py-3 rounded-2xl flex items-center gap-2 text-sm transition-all relative",
+                activeFiltersCount > 0 ? "text-primary nm-inset" : "text-muted-foreground hover:nm-inset"
               )}
              >
                <Filter size={18} />
                <span>Filters</span>
+               {activeFiltersCount > 0 && (
+                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] flex items-center justify-center rounded-full shadow-lg">
+                   {activeFiltersCount}
+                 </span>
+               )}
              </button>
              
              {/* Filter Dialog */}
@@ -161,7 +168,7 @@ export default function FacultyValidatePage() {
                         </div>
                       </div>
 
-                      <div className="min-h-[180px]">
+                      <div className="min-height-[240px]">
                         <AnimatePresence mode="wait">
                           {activeTab === "year" ? (
                             <motion.div 
@@ -171,19 +178,25 @@ export default function FacultyValidatePage() {
                               exit={{ opacity: 0, x: 10 }}
                               className="space-y-4"
                             >
-                              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4">Select Academic Year</p>
+                              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4 flex justify-between">
+                                <span>Select Academic Years</span>
+                                {filters.years.length > 0 && <span className="text-primary">{filters.years.length} selected</span>}
+                              </p>
                               <div className="grid grid-cols-2 gap-3">
-                                {[3, 4].map(y => (
+                                {[1, 2, 3, 4, 5].map(y => (
                                   <button 
                                     key={y}
-                                    onClick={() => setFilters(f => ({ ...f, year: f.year === y ? undefined : y }))}
+                                    onClick={() => setFilters(f => ({ 
+                                      ...f, 
+                                      years: f.years.includes(y) ? f.years.filter(year => year !== y) : [...f.years, y] 
+                                    }))}
                                     className={cn(
                                       "py-4 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-1",
-                                      filters.year === y ? "nm-inset text-primary" : "nm-convex text-muted-foreground hover:text-primary"
+                                      filters.years.includes(y) ? "nm-inset text-primary" : "nm-convex text-muted-foreground hover:text-primary"
                                     )}
                                   >
                                     <span className="text-lg">{y}</span>
-                                    <span>{y === 3 ? "3rd" : "4th"} Year</span>
+                                    <span>{y === 1 ? "1st" : y === 2 ? "2nd" : y === 3 ? "3rd" : y === 4 ? "4th" : "5th"} Year</span>
                                   </button>
                                 ))}
                               </div>
@@ -196,15 +209,21 @@ export default function FacultyValidatePage() {
                               exit={{ opacity: 0, x: -10 }}
                               className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar"
                             >
-                              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4">Select Department</p>
+                              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4 flex justify-between">
+                                <span>Select Departments</span>
+                                {filters.departments.length > 0 && <span className="text-primary">{filters.departments.length} selected</span>}
+                              </p>
                               <div className="space-y-2">
                                 {DEPARTMENTS.map(dept => (
                                   <button 
                                     key={dept}
-                                    onClick={() => setFilters(f => ({ ...f, department: f.department === dept ? undefined : dept }))}
+                                    onClick={() => setFilters(f => ({ 
+                                      ...f, 
+                                      departments: f.departments.includes(dept) ? f.departments.filter(d => d !== dept) : [...f.departments, dept] 
+                                    }))}
                                     className={cn(
                                       "w-full px-4 py-3 rounded-xl text-[10px] text-left font-bold transition-all",
-                                      filters.department === dept ? "nm-inset text-primary" : "nm-convex text-muted-foreground hover:text-primary"
+                                      filters.departments.includes(dept) ? "nm-inset text-primary" : "nm-convex text-muted-foreground hover:text-primary"
                                     )}
                                   >
                                     {dept}
@@ -218,7 +237,7 @@ export default function FacultyValidatePage() {
 
                       <div className="flex justify-between items-center pt-4 border-t border-border/10">
                         <button 
-                          onClick={() => setFilters({ year: undefined, department: undefined, group: undefined })}
+                          onClick={() => setFilters({ years: [], departments: [], group: undefined })}
                           className="text-[10px] text-muted-foreground hover:text-primary font-bold uppercase tracking-wider"
                         >
                           Reset

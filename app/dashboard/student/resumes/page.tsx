@@ -1,9 +1,9 @@
-"use client";
-
-import { useState, useEffect } from "react";
+'use client'
+import { useState, useEffect, useRef, useLayoutEffect } from "react";
+import { createPortal } from "react-dom";
 import { useAuth } from "@/context/auth-context";
-import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2, FileCode, FilePenLine, Trash2, Send, Download, CheckCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { resumeApi } from "@/lib/api";
 import { CreateResumeDialog } from "@/components/dashboard/CreateResumeDialog";
@@ -18,6 +18,10 @@ export default function StudentResumesPage() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number, right: number } | null>(null);
+  const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
 
   const fetchResumes = async (signal?: AbortSignal) => {
     try {
@@ -42,14 +46,68 @@ export default function StudentResumesPage() {
     };
   }, []);
 
-  const handleCreateResume = async (type: string, template: string) => {
+  useLayoutEffect(() => {
+    if (openMenuId && buttonRefs.current[openMenuId]) {
+      const rect = buttonRefs.current[openMenuId]!.getBoundingClientRect();
+      setMenuPosition({
+        top: rect.top + window.scrollY,
+        right: window.innerWidth - rect.left - window.scrollX + 8
+      });
+    } else {
+      setMenuPosition(null);
+    }
+  }, [openMenuId]);
+
+  useEffect(() => {
+    const handleClose = () => setOpenMenuId(null);
+    window.addEventListener('scroll', handleClose, true);
+    window.addEventListener('resize', handleClose);
+    return () => {
+      window.removeEventListener('scroll', handleClose, true);
+      window.removeEventListener('resize', handleClose);
+    };
+  }, []);
+
+  const handleCreateResume = async (type: string, template: string, format: string, fileUrl?: string) => {
     try {
-      const newResume = await resumeApi.createResume(type, template);
+      const newResume = await resumeApi.createResume(type, template, format, fileUrl);
       toast.success("Resume version initialized!");
-      router.push(`/dashboard/student/resumes/${newResume.id || newResume._id}/edit`);
+      
+      if (format === 'latex') {
+        router.push(`/dashboard/student/resumes/${newResume.id || newResume._id}/edit`);
+      } else {
+        fetchResumes();
+      }
     } catch (err) {
       console.error(err);
       toast.error("Failed to create resume");
+    }
+  };
+
+  const handleDeleteResume = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this resume? This cannot be undone.")) return;
+    try {
+      await resumeApi.deleteResume(id);
+      toast.success("Resume deleted");
+      fetchResumes();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete resume");
+    } finally {
+      setOpenMenuId(null);
+    }
+  };
+
+  const handleSubmitResume = async (id: string) => {
+    try {
+      await resumeApi.submitResume(id);
+      toast.success("Resume submitted for review!");
+      fetchResumes();
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to submit resume");
+    } finally {
+      setOpenMenuId(null);
     }
   };
 
@@ -139,20 +197,32 @@ export default function StudentResumesPage() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
           {filteredResumes.map((resume, i) => {
+            const resumeId = resume.id || resume._id;
             const latestVersion = resume.versions[resume.versions.length - 1];
             return (
               <motion.div
-                key={resume.id || resume._id}
+                key={resumeId}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.1 }}
                 className="group cursor-pointer space-y-4"
-                onClick={() => router.push(`/dashboard/student/resumes/${resume.id || resume._id}/edit`)}
+                onClick={() => {
+                  router.push(`/dashboard/student/resumes/${resumeId}/edit`);
+                }}
               >
                 <div className="aspect-[4/3] rounded-3xl bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col p-8 transition-all group-hover:bg-slate-50 dark:group-hover:bg-slate-900 relative">
                   <div className="flex justify-between items-start">
-                    <div className="text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors">
-                      <FileText size={32} strokeWidth={1} />
+                    <div className="text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors flex items-center gap-3">
+                      {latestVersion?.format === 'latex' ? (
+                        <FileCode size={32} strokeWidth={1} />
+                      ) : (
+                        <FileText size={32} strokeWidth={1} />
+                      )}
+                      {latestVersion?.format && latestVersion.format !== 'latex' && (
+                        <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg uppercase tracking-wider text-slate-500">
+                          {latestVersion.format}
+                        </span>
+                      )}
                     </div>
                     <div className={cn(
                       "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest",
@@ -170,16 +240,93 @@ export default function StudentResumesPage() {
                   </div>
 
                   <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                     <button className="p-2 text-slate-300 hover:text-primary">
-                        <MoreVertical size={16} />
+                     <button 
+                        ref={el => { buttonRefs.current[resumeId] = el; }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === resumeId ? null : resumeId);
+                        }}
+                        className={cn(
+                          "p-2 rounded-xl text-slate-300 hover:text-primary hover:bg-white dark:hover:bg-slate-800 transition-all",
+                          openMenuId === resumeId && "text-primary bg-white dark:bg-slate-800 shadow-sm opacity-100"
+                        )}
+                     >
+                        <MoreVertical size={18} />
                      </button>
                   </div>
                 </div>
                 
                 <div className="px-2 flex justify-between items-center text-[11px]">
                    <span className="text-slate-500 dark:text-slate-400 font-light">Score: {latestVersion?.ai_score?.total || "--"}</span>
-                   <span className="text-primary/70 dark:text-slate-300 group-hover:text-primary transition-colors font-medium">Edit document →</span>
+                   <span className="text-primary/70 dark:text-slate-300 group-hover:text-primary transition-colors font-medium text-[10px] font-bold uppercase tracking-widest">
+                     {latestVersion?.format === 'latex' ? 'Edit document →' : 'View version →'}
+                   </span>
                 </div>
+
+                {/* Portal-based Menu */}
+                {openMenuId === resumeId && menuPosition && typeof document !== 'undefined' && createPortal(
+                  <div className="fixed inset-0 z-[100]" onClick={(e) => e.stopPropagation()}>
+                    <div 
+                      className="absolute inset-0 bg-transparent" 
+                      onClick={() => setOpenMenuId(null)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                      style={{ 
+                        position: 'fixed',
+                        top: menuPosition.top,
+                        right: menuPosition.right,
+                      }}
+                      className="w-52 bg-white dark:bg-slate-900 rounded-3xl p-3 shadow-[0_20px_50px_rgba(0,0,0,0.15)] border border-slate-100 dark:border-slate-800 text-left"
+                    >
+                      <div className="space-y-1">
+                        <button
+                          onClick={() => {
+                            router.push(`/dashboard/student/resumes/${resumeId}/edit`);
+                            setOpenMenuId(null);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                        >
+                          <FilePenLine size={14} className="text-primary" />
+                          <span>View / Edit</span>
+                        </button>
+
+                        {(latestVersion?.status === 'draft' || latestVersion?.status === 'rejected') && (
+                          <button
+                            onClick={() => handleSubmitResume(resumeId)}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 transition-colors"
+                          >
+                            <Send size={14} />
+                            <span>Submit Review</span>
+                          </button>
+                        )}
+
+                        {latestVersion?.file_url && (
+                          <button
+                            onClick={() => window.open(latestVersion.file_url, '_blank')}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                          >
+                            <Download size={14} />
+                            <span>Download PDF</span>
+                          </button>
+                        )}
+                        
+                        <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
+                        
+                        <button
+                          onClick={() => handleDeleteResume(resumeId)}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                        >
+                          <Trash2 size={14} />
+                          <span>Delete Record</span>
+                        </button>
+                      </div>
+                    </motion.div>
+                  </div>,
+                  document.body
+                )}
               </motion.div>
             );
           })}

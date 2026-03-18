@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 interface CreateResumeDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (type: string, template: string) => Promise<void>;
+  onCreate: (type: string, template: string, format: string, fileUrl?: string) => Promise<void>;
 }
 
 const TEMPLATES = [
@@ -18,6 +18,7 @@ const TEMPLATES = [
     description: "Optimized for tech roles with skills and projects focus.",
     icon: Sparkles,
     colorClass: "text-secondary",
+    format: "latex",
     latex: `\\documentclass[a4paper,10pt]{article}
 \\usepackage{fullpage}
 \\usepackage{titlesec}
@@ -40,6 +41,7 @@ Project Name - Key Tech Used
     description: "Balanced layout for core engineering and data roles.",
     icon: FileText,
     colorClass: "text-primary",
+    format: "latex",
     latex: `\\documentclass[a4paper,10pt]{article}
 \\begin{document}
 \\begin{center}
@@ -55,12 +57,31 @@ Seeking a challenging role in Core Engineering.
     description: "Start with a minimal LaTeX structure and build it your way.",
     icon: Plus,
     colorClass: "text-slate-400",
+    format: "latex",
     latex: `\\documentclass[a4paper,10pt]{article}
 \\begin{document}
 \\begin{center}
     {\\huge \\bf Your Name}
 \\end{center}
 \\end{document}`,
+  },
+  {
+    id: "pdf_upload",
+    name: "Upload PDF",
+    description: "Upload an existing PDF for AI analysis and tracking.",
+    icon: FileText,
+    colorClass: "text-rose-500",
+    format: "pdf",
+    latex: ""
+  },
+  {
+    id: "docx_upload",
+    name: "Upload DOCX",
+    description: "Upload a Word document for AI validation.",
+    icon: FileText,
+    colorClass: "text-blue-500",
+    format: "docx",
+    latex: ""
   }
 ];
 
@@ -68,6 +89,7 @@ export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDi
   const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
   const [name, setName] = useState("");
   const [customType, setCustomType] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -77,9 +99,12 @@ export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDi
     setIsSubmitting(true);
     try {
       const finalType = selectedTemplate.id === 'custom' ? (customType || "Custom Resume") : selectedTemplate.name;
-      await onCreate(name, selectedTemplate.latex);
-      // Note: The onCreate in StudentDashboard only takes (type, template)
-      // We are passing 'name' as type for now based on current handleCreateResume implementation
+      // For now, we simulate a file URL if it's an upload type
+      const fileUrl = (selectedTemplate.id === 'pdf_upload' || selectedTemplate.id === 'docx_upload') 
+        ? `temp_${Date.now()}_${selectedTemplate.id === 'pdf_upload' ? 'resume.pdf' : 'resume.docx'}`
+        : undefined;
+        
+      await onCreate(name, selectedTemplate.latex || "", (selectedTemplate as any).format || "latex", fileUrl);
       onClose();
     } catch (err) {
       console.error(err);
@@ -121,100 +146,132 @@ export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDi
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-8 space-y-8">
-              {/* Version Name */}
-              <div className="space-y-3">
-                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Descriptor</label>
-                <div className="relative group">
-                  <input 
-                    autoFocus
-                    required
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="e.g. Senior_SDE_Referral"
-                    className="w-full bg-slate-50 dark:bg-slate-900/50 border-0 border-b-2 border-slate-100 dark:border-slate-800 p-5 rounded-t-2xl text-base font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:border-primary transition-all outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                  />
-                  <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors">
-                    <FileText size={18} />
+            <form onSubmit={handleSubmit} className="flex flex-col max-h-[max(400px,80vh)]">
+              {/* Scrollable Body */}
+              <div className="flex-1 overflow-y-auto p-8 pt-4 space-y-8 custom-scrollbar min-h-0">
+                {/* Version Name */}
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Descriptor</label>
+                  <div className="relative group">
+                    <input 
+                      autoFocus
+                      required
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="e.g. Senior_SDE_Referral"
+                      className="w-full bg-slate-50 dark:bg-slate-900/50 border-0 border-b-2 border-slate-100 dark:border-slate-800 p-5 rounded-t-2xl text-base font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:border-primary transition-all outline-none placeholder:text-slate-300 dark:placeholder:text-slate-600"
+                    />
+                    <div className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 group-focus-within:text-primary transition-colors">
+                      <FileText size={18} />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Template Selection */}
+                <div className="space-y-4">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Strategy</label>
+                  <div className="flex flex-col gap-3">
+                    {TEMPLATES.map((t) => (
+                      <div key={t.id} className="space-y-3">
+                        <motion.div 
+                          whileHover={{ x: 4 }}
+                          whileTap={{ scale: 0.99 }}
+                          onClick={() => setSelectedTemplate(t)}
+                          className={cn(
+                            "cursor-pointer border-2 p-4 rounded-2xl transition-all flex items-center gap-4 relative overflow-hidden",
+                            selectedTemplate.id === t.id 
+                              ? "border-primary bg-primary/[0.02] shadow-[0_8px_20px_rgba(37,99,235,0.06)]" 
+                              : "border-slate-50 dark:border-slate-900 bg-white dark:bg-slate-950 hover:border-slate-200 dark:hover:border-slate-800"
+                          )}
+                        >
+                          <div className={cn(
+                            "w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0",
+                            selectedTemplate.id === t.id ? "bg-primary text-white" : "bg-slate-50 dark:bg-slate-900"
+                          )}>
+                            <t.icon 
+                              size={20} 
+                              className={cn(
+                                "transition-colors",
+                                selectedTemplate.id === t.id ? "text-white" : t.colorClass
+                              )} 
+                            />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className={cn(
+                              "font-bold text-sm transition-colors",
+                              selectedTemplate.id === t.id ? "text-primary dark:text-white" : "text-slate-800 dark:text-slate-200"
+                            )}>{t.name}</h4>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
+                              {t.description}
+                            </p>
+                          </div>
+                          {selectedTemplate.id === t.id && (
+                            <motion.div 
+                              layoutId="active-check"
+                              className="bg-primary text-white p-1 rounded-full shrink-0"
+                            >
+                              <ChevronRight size={12} className="stroke-[3]" />
+                            </motion.div>
+                          )}
+                        </motion.div>
+
+                        {/* Inline Custom Type Input */}
+                        <AnimatePresence>
+                          {selectedTemplate.id === "custom" && t.id === "custom" && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden px-4"
+                            >
+                              <div className="relative group pt-1 pb-4">
+                                <input 
+                                  value={customType}
+                                  onChange={(e) => setCustomType(e.target.value)}
+                                  placeholder="Enter custom resume type... (e.g. Portfolio)"
+                                  className="w-full bg-slate-50 dark:bg-slate-900/30 border-0 border-b border-primary/30 p-3 rounded-lg text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:border-primary transition-all outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600"
+                                />
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+
+                        {/* File Upload Input */}
+                        <AnimatePresence>
+                          {selectedTemplate.format !== "latex" && t.id === selectedTemplate.id && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: "auto", opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              className="overflow-hidden px-4"
+                            >
+                              <div className="pt-1 pb-4">
+                                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-dashed border-slate-200 dark:border-slate-800 rounded-2xl cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-all">
+                                  <div className="flex flex-col items-center justify-center pt-2 pb-2">
+                                    <FileText className="w-6 h-6 mb-2 text-slate-400" />
+                                    <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                                      {selectedFile ? selectedFile.name : `Select ${selectedTemplate.format.toUpperCase()} file`}
+                                    </p>
+                                  </div>
+                                  <input 
+                                    type="file" 
+                                    className="hidden" 
+                                    accept={selectedTemplate.format === 'pdf' ? '.pdf' : '.docx'}
+                                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                                  />
+                                </label>
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
 
-              {/* Template Selection */}
-              <div className="space-y-4">
-                <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">Strategy</label>
-                <div className="flex flex-col gap-3">
-                  {TEMPLATES.map((t) => (
-                    <div key={t.id} className="space-y-3">
-                      <motion.div 
-                        whileHover={{ x: 4 }}
-                        whileTap={{ scale: 0.99 }}
-                        onClick={() => setSelectedTemplate(t)}
-                        className={cn(
-                          "cursor-pointer border-2 p-4 rounded-2xl transition-all flex items-center gap-4 relative overflow-hidden",
-                          selectedTemplate.id === t.id 
-                            ? "border-primary bg-primary/[0.02] shadow-[0_8px_20px_rgba(37,99,235,0.06)]" 
-                            : "border-slate-50 dark:border-slate-900 bg-white dark:bg-slate-950 hover:border-slate-200 dark:hover:border-slate-800"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0",
-                          selectedTemplate.id === t.id ? "bg-primary text-white" : "bg-slate-50 dark:bg-slate-900"
-                        )}>
-                          <t.icon 
-                            size={20} 
-                            className={cn(
-                              "transition-colors",
-                              selectedTemplate.id === t.id ? "text-white" : t.colorClass
-                            )} 
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className={cn(
-                            "font-bold text-sm transition-colors",
-                            selectedTemplate.id === t.id ? "text-primary dark:text-white" : "text-slate-800 dark:text-slate-200"
-                          )}>{t.name}</h4>
-                          <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
-                            {t.description}
-                          </p>
-                        </div>
-                        {selectedTemplate.id === t.id && (
-                          <motion.div 
-                            layoutId="active-check"
-                            className="bg-primary text-white p-1 rounded-full shrink-0"
-                          >
-                            <ChevronRight size={12} className="stroke-[3]" />
-                          </motion.div>
-                        )}
-                      </motion.div>
-
-                      {/* Inline Custom Type Input */}
-                      <AnimatePresence>
-                        {selectedTemplate.id === "custom" && t.id === "custom" && (
-                          <motion.div
-                            initial={{ height: 0, opacity: 0 }}
-                            animate={{ height: "auto", opacity: 1 }}
-                            exit={{ height: 0, opacity: 0 }}
-                            className="overflow-hidden px-4"
-                          >
-                            <div className="relative group pt-1 pb-4">
-                              <input 
-                                value={customType}
-                                onChange={(e) => setCustomType(e.target.value)}
-                                placeholder="Enter custom resume type... (e.g. Portfolio)"
-                                className="w-full bg-slate-50 dark:bg-slate-900/30 border-0 border-b border-primary/30 p-3 rounded-lg text-sm font-medium text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 focus:border-primary transition-all outline-none placeholder:text-slate-400 dark:placeholder:text-slate-600"
-                              />
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Footer Actions */}
-              <div className="pt-4 flex items-center gap-4">
+              {/* Fixed Footer Actions */}
+              <div className="p-8 pt-4 flex items-center gap-4 bg-white dark:bg-slate-950 border-t border-slate-50 dark:border-slate-800 shrink-0">
                 <button 
                   type="button"
                   onClick={onClose}
@@ -224,13 +281,13 @@ export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDi
                 </button>
                 <button 
                   type="submit"
-                  disabled={isSubmitting || !name}
+                  disabled={isSubmitting || !name || (selectedTemplate.format !== 'latex' && !selectedFile)}
                   className="flex-1 bg-[#2563EB] hover:bg-[#1d4ed8] text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-[0_8px_20px_rgba(37,99,235,0.25)] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:shadow-none group"
                 >
                   {isSubmitting ? (
                     <>Processing <Loader2 className="w-4 h-4 animate-spin" /></>
                   ) : (
-                    <>Initialize & Edit <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" /></>
+                    <>Initialize & Start <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" /></>
                   )}
                 </button>
               </div>

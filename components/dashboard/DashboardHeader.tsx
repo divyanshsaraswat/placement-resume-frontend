@@ -64,7 +64,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
               setIsProfileOpen(false);
             }}
             className={cn(
-              "p-2 rounded-xl transition-all relative group",
+              "w-10 h-10 flex items-center justify-center rounded-xl transition-all relative group",
               isNotificationsOpen ? "bg-primary/10 text-primary" : "text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900"
             )}
           >
@@ -78,7 +78,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 mt-3 w-[min(calc(100vw-2rem),380px)] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[2rem] overflow-hidden z-50 p-2"
+                className="fixed md:absolute top-16 md:top-full left-4 right-4 md:left-auto md:right-0 mt-3 md:w-[380px] bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[2rem] overflow-hidden z-50 p-2"
               >
                 <div className="p-4 border-b border-slate-50 dark:border-slate-800 flex items-center justify-between">
                   <h3 className="text-sm font-bold text-slate-900 dark:text-white">Notifications</h3>
@@ -114,7 +114,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
               setIsNotificationsOpen(false);
             }}
             className={cn(
-              "flex items-center gap-3 p-1 pl-3 rounded-2xl transition-all group",
+              "flex items-center gap-3 w-10 h-10 sm:w-auto p-0 sm:p-1 sm:pl-3 rounded-2xl transition-all group justify-center sm:justify-start",
               isProfileOpen ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900"
             )}
           >
@@ -137,7 +137,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                 initial={{ opacity: 0, y: 10, scale: 0.95 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                className="absolute right-0 top-full mt-3 w-56 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[1.5rem] overflow-hidden z-50 p-2"
+                className="fixed md:absolute top-16 md:top-full left-4 right-4 md:left-auto md:right-0 mt-3 md:w-56 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[1.5rem] overflow-hidden z-50 p-2"
               >
                 <div className="p-3 mb-2 hidden max-sm:block border-b border-slate-50 dark:border-slate-800">
                   <p className="text-xs font-bold text-slate-900 dark:text-white">{user?.name}</p>

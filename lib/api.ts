@@ -69,12 +69,20 @@ export const resumeApi = {
     const response = await api.get(`/resumes/${id}`, { signal });
     return response.data;
   },
-  createResume: async (type: string, initial_latex: string, signal?: AbortSignal) => {
-    const response = await api.post("/resumes", { type, initial_latex }, { signal });
+  createResume: async (type: string, initial_latex: string = "", format: string = "latex", file_url?: string, signal?: AbortSignal) => {
+    const response = await api.post("/resumes", { type, initial_latex, format, file_url }, { signal });
     return response.data;
   },
   saveResume: async (id: string, updates: Record<string, any>, signal?: AbortSignal) => {
     const response = await api.patch(`/resumes/${id}`, updates, { signal });
+    return response.data;
+  },
+  deleteResume: async (id: string, signal?: AbortSignal) => {
+    const response = await api.delete(`/resumes/${id}`, { signal });
+    return response.data;
+  },
+  submitResume: async (id: string, signal?: AbortSignal) => {
+    const response = await api.post(`/resumes/${id}/submit`, null, { signal });
     return response.data;
   },
   compilePdf: async (latex: string, signal?: AbortSignal) => {
@@ -118,8 +126,30 @@ export const resumeApi = {
       }
     }
   },
-  getValidationQueue: async (params: { search?: string; year?: number; department?: string; group?: string }, signal?: AbortSignal) => {
-    const response = await api.get("/resumes/validation-queue", { params, signal });
+  getValidationQueue: async (params: { search?: string; year?: number | number[]; department?: string|string[]; group?: string }, signal?: AbortSignal) => {
+    // For FastAPI List[T] parameters, we need repeated keys: ?year=1&year=2
+    // We use URLSearchParams to achieve this serialization
+    const searchParams = new URLSearchParams();
+    if (params.search) searchParams.append("search", params.search);
+    if (params.group) searchParams.append("group", params.group);
+    
+    if (params.year) {
+      if (Array.isArray(params.year)) {
+        params.year.forEach(y => searchParams.append("year", y.toString()));
+      } else {
+        searchParams.append("year", params.year.toString());
+      }
+    }
+    
+    if (params.department) {
+      if (Array.isArray(params.department)) {
+        params.department.forEach(d => searchParams.append("department", d));
+      } else {
+        searchParams.append("department", params.department);
+      }
+    }
+
+    const response = await api.get("/resumes/validation-queue", { params: searchParams, signal });
     return response.data;
   },
 };
@@ -129,8 +159,28 @@ export const adminApi = {
     const response = await api.get("/users", { params: { role }, signal });
     return response.data;
   },
-  getStudents: async (params: { search?: string; year?: number; department?: string }, signal?: AbortSignal) => {
-    const response = await api.get("/users/students", { params, signal });
+  getStudents: async (params: { search?: string; year?: number | number[]; department?: string | string[] }, signal?: AbortSignal) => {
+    // Repeated keys for FastAPI List[T] params
+    const searchParams = new URLSearchParams();
+    if (params.search) searchParams.append("search", params.search);
+    
+    if (params.year) {
+      if (Array.isArray(params.year)) {
+        params.year.forEach(y => searchParams.append("year", y.toString()));
+      } else {
+        searchParams.append("year", params.year.toString());
+      }
+    }
+    
+    if (params.department) {
+      if (Array.isArray(params.department)) {
+        params.department.forEach(d => searchParams.append("department", d));
+      } else {
+        searchParams.append("department", params.department);
+      }
+    }
+
+    const response = await api.get("/users/students", { params: searchParams, signal });
     return response.data;
   },
   updateUser: async (userId: string, data: any) => {
