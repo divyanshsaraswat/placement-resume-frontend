@@ -10,6 +10,7 @@ import { CreateResumeDialog } from "@/components/dashboard/CreateResumeDialog";
 import { AddVersionDialog } from "@/components/dashboard/AddVersionDialog";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 
 export default function StudentResumesPage() {
   const { user } = useAuth();
@@ -26,6 +27,18 @@ export default function StudentResumesPage() {
   const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
   const [showRemarkModal, setShowRemarkModal] = useState(false);
   const [selectedVersionData, setSelectedVersionData] = useState<any>(null);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+    variant?: "danger" | "warning" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   const fetchResumes = async (signal?: AbortSignal) => {
     try {
@@ -89,12 +102,7 @@ export default function StudentResumesPage() {
 
       const newResume = await resumeApi.createResume(type, template, finalFormat, file);
       toast.success("Resume created successfully!");
-      
-      if (finalFormat === 'latex') {
-        router.push(`/dashboard/student/resumes/${newResume.id || newResume._id}/edit`);
-      } else {
-        fetchResumes();
-      }
+      router.push(`/dashboard/student/resumes/${newResume.id || newResume._id}/edit`);
     } catch (err: any) {
       console.error("[ResumeCreate Error]", err);
       const detail = err.response?.data?.detail;
@@ -104,30 +112,42 @@ export default function StudentResumesPage() {
   };
 
   const handleDeleteResume = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this entire document and all its versions? This cannot be undone.")) return;
-    
     setOpenMenuId(null);
-    toast.promise(resumeApi.deleteResume(id), {
-      loading: 'Deleting document portfolio...',
-      success: () => {
-        fetchResumes();
-        return 'Document portfolio permanently deleted';
-      },
-      error: (err: any) => err?.response?.data?.detail || 'Failed to delete document',
+    setConfirmConfig({
+      isOpen: true,
+      title: "Delete Portfolio",
+      message: "Are you sure you want to permanently delete this entire document and all its versions? This institutional record cannot be recovered.",
+      variant: "danger",
+      onConfirm: async () => {
+        toast.promise(resumeApi.deleteResume(id), {
+          loading: 'Deleting document portfolio...',
+          success: () => {
+            fetchResumes();
+            return 'Document portfolio permanently deleted';
+          },
+          error: (err: any) => err?.response?.data?.detail || 'Failed to delete document',
+        });
+      }
     });
   };
 
   const handleDeleteVersion = async (resumeId: string, versionId: string) => {
-    if (!confirm("Are you sure you want to delete this specific version?")) return;
-    
     setOpenMenuId(null);
-    toast.promise(resumeApi.deleteVersion(resumeId, versionId), {
-      loading: 'Deleting record iteration...',
-      success: () => {
-        fetchResumes();
-        return 'Iterative record deleted successfully';
-      },
-      error: (err: any) => err?.response?.data?.detail || 'Failed to delete version',
+    setConfirmConfig({
+      isOpen: true,
+      title: "Delete Version",
+      message: "Are you sure you want to delete this specific record iteration? This will not affect other versions in the portfolio.",
+      variant: "danger",
+      onConfirm: async () => {
+        toast.promise(resumeApi.deleteVersion(resumeId, versionId), {
+          loading: 'Deleting record iteration...',
+          success: () => {
+            fetchResumes();
+            return 'Iterative record deleted successfully';
+          },
+          error: (err: any) => err?.response?.data?.detail || 'Failed to delete version',
+        });
+      }
     });
   };
 
@@ -144,14 +164,13 @@ export default function StudentResumesPage() {
   };
 
   const handleAddVersion = async (resumeId: string, type: string, latexCode: string, format: string, file?: File) => {
-    toast.promise(resumeApi.addVersion(resumeId, type, latexCode, format, file), {
-      loading: `Uploading new ${format.toUpperCase()} record...`,
-      success: () => {
-        fetchResumes();
-        return 'New iterative record successfully verified';
-      },
-      error: (err: any) => err?.response?.data?.detail || 'Failed to establish new record version',
-    });
+    try {
+      await resumeApi.addVersion(resumeId, type, latexCode, format, file);
+      toast.success('New iterative record successfully verified');
+      router.push(`/dashboard/student/resumes/${resumeId}/edit`);
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || 'Failed to establish new record version');
+    }
   };
 
   const allVersionCards = resumes.flatMap(resume => 
@@ -632,6 +651,14 @@ export default function StudentResumesPage() {
         )}
       </AnimatePresence>
 
+      <ConfirmationDialog 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+        onConfirm={confirmConfig.onConfirm}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        variant={confirmConfig.variant}
+      />
     </div>
   );
 }

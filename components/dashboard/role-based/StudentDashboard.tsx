@@ -8,8 +8,12 @@ import { DonutChart, BarChart, LineChart } from "../DashboardCharts";
 import { CreateResumeDialog } from "../CreateResumeDialog";
 import { resumeApi, authApi } from "@/lib/api";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth-context";
 
 export function StudentDashboard() {
+  const { user } = useAuth();
+  const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
@@ -31,13 +35,11 @@ export function StudentDashboard() {
     fetchData();
   }, []);
 
-  const handleCreateResume = async (name: string, template: string): Promise<void> => {
+  const handleCreateResume = async (name: string, template: string, format: string, file?: File): Promise<void> => {
     try {
-      await resumeApi.createResume(name, "", "latex");
-      toast.success("Resume created successfully");
-      // Refresh data
-      const stats = await resumeApi.getStats();
-      setData(stats);
+      const newResume = await resumeApi.createResume(name, template, format, file);
+      toast.success("Resume created successfully!");
+      router.push(`/dashboard/student/resumes/${newResume.id || newResume._id}/edit`);
     } catch (error) {
       toast.error("Failed to create resume");
     }

@@ -38,7 +38,7 @@ export default function RootLayout({
               <SmoothScroll>
                 {children}
               </SmoothScroll>
-              <Toaster position="bottom-right" richColors closeButton theme="dark" />
+              <Toaster position="bottom-right" richColors closeButton theme="system" />
             </AuthProvider>
           </SessionProvider>
         </ThemeProvider>

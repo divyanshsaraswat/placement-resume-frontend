@@ -191,19 +191,9 @@ export default function SettingsPage() {
                <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 pl-1">Department</label>
                   <div className="relative">
-                    <Building2 size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" />
-                    <select 
-                      value={profile.department}
-                      onChange={(e) => setProfile({...profile, department: e.target.value})}
-                      className="w-full pl-12 pr-10 py-3 bg-transparent border-0 border-b-2 border-slate-100 dark:border-slate-800 focus:border-primary outline-none transition-all text-sm font-medium text-slate-900 dark:text-white appearance-none rounded-none cursor-pointer"
-                    >
-                      <option value="Computer Science">Computer Science</option>
-                      <option value="Electronics">Electronics</option>
-                      <option value="Mechanical">Mechanical</option>
-                      <option value="Civil">Civil</option>
-                    </select>
-                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                      <ChevronRight size={14} className="rotate-90" />
+                    <Building2 size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-300" />
+                    <div className="w-full pl-12 pr-5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 text-slate-400 text-sm font-light flex items-center h-[46px] opacity-70">
+                       {profile.department}
                     </div>
                   </div>
                </div>
@@ -224,67 +214,72 @@ export default function SettingsPage() {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-               <div className="space-y-3">
-                 <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 pl-1">Display Appearance</label>
-                 <div className="flex p-1.5 bg-slate-50 dark:bg-slate-900/80 rounded-[2rem] border border-slate-100 dark:border-slate-800">
-                    <button 
-                      onClick={() => setTheme("light")}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest transition-all",
-                        theme === "light" ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
-                      )}
-                    >
-                      <Sun size={12} /> Light
-                    </button>
-                    <button 
-                      onClick={() => setTheme("dark")}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest transition-all",
-                        theme === "dark" ? "bg-slate-800 text-primary shadow-sm" : "text-slate-400 hover:text-slate-200"
-                      )}
-                    >
-                      <Moon size={12} /> Dark
-                    </button>
-                    <button 
-                      onClick={() => setTheme("system")}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-2 py-2.5 rounded-[1.5rem] text-[10px] font-bold uppercase tracking-widest transition-all",
-                        theme === "system" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
-                      )}
-                    >
-                      <Monitor size={12} /> System
-                    </button>
-                 </div>
-               </div>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 pl-1">Display Appearance</label>
+                  <div className="flex p-1 bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 h-[64px]">
+                     <button 
+                       onClick={() => setTheme("light")}
+                       className={cn(
+                         "flex-1 flex items-center justify-center gap-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                         theme === "light" ? "bg-white text-primary shadow-sm" : "text-slate-400 hover:text-slate-600"
+                       )}
+                     >
+                       <Sun size={12} /> Light
+                     </button>
+                     <button 
+                       onClick={() => setTheme("dark")}
+                       className={cn(
+                         "flex-1 flex items-center justify-center gap-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                         theme === "dark" ? "bg-slate-800 text-primary shadow-sm" : "text-slate-400 hover:text-slate-200"
+                       )}
+                     >
+                       <Moon size={12} /> Dark
+                     </button>
+                     <button 
+                       onClick={() => setTheme("system")}
+                       className={cn(
+                         "flex-1 flex items-center justify-center gap-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all",
+                         theme === "system" ? "bg-white dark:bg-slate-800 text-primary shadow-sm" : "text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                       )}
+                     >
+                       <Monitor size={12} /> System
+                     </button>
+                  </div>
+                </div>
 
-               <div className="space-y-3">
-                 <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 pl-1">Institutional Alerts</label>
-                 <button 
-                    onClick={() => setNotifications(!notifications)}
-                    className={cn(
-                      "w-full flex items-center justify-between px-6 py-4 rounded-[1.5rem] border transition-all group",
-                      notifications 
-                        ? "border-primary/20 bg-primary/5 text-primary" 
-                        : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-400"
-                    )}
-                 >
-                    <div className="flex items-center gap-3 text-left">
-                      <div className={cn(
-                        "w-8 h-8 rounded-full flex items-center justify-center transition-all",
-                        notifications ? "bg-white dark:bg-slate-800 shadow-sm" : "bg-slate-50 dark:bg-slate-900"
-                      )}>
-                        <Bell size={14} className={cn(notifications && "animate-ring")} />
-                      </div>
-                      <div>
-                        <p className="text-[10px] font-bold uppercase tracking-wider">Notifications</p>
-                        <p className="text-xs font-medium">{notifications ? "Alerts Active" : "Alerts Silenced"}</p>
+                <div className="space-y-3">
+                  <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 pl-1">Institutional Alerts</label>
+                  <button 
+                     onClick={() => setNotifications(!notifications)}
+                     className={cn(
+                       "w-full flex items-center justify-between px-5 rounded-2xl border transition-all h-[64px] group",
+                       notifications 
+                         ? "border-primary/20 bg-primary/5 text-primary" 
+                         : "border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-950 text-slate-400"
+                     )}
+                  >
+                     <div className="flex items-center gap-3">
+                       <div className={cn(
+                         "w-10 h-10 rounded-xl flex items-center justify-center transition-all",
+                         notifications ? "bg-white dark:bg-slate-800 shadow-sm" : "bg-slate-50 dark:bg-slate-900"
+                       )}>
+                         <Bell size={14} className={cn(notifications && "animate-ring")} />
+                       </div>
+                      <div className="text-left leading-tight">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-primary/80">Notifications</p>
+                        <p className={cn(
+                          "text-xs font-bold",
+                          notifications ? "text-primary" : "text-slate-400"
+                        )}>
+                          {notifications ? "Active" : "Silenced"}
+                        </p>
                       </div>
                     </div>
                     <div className={cn(
-                      "w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all",
-                      notifications ? "border-primary bg-primary text-white" : "border-slate-200"
+                      "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shadow-sm",
+                      notifications ? "bg-primary border-primary text-white" : "border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900"
                     )}>
-                      {notifications && <Check size={10} strokeWidth={3} />}
+                      {notifications && <Check size={12} strokeWidth={4} />}
                     </div>
                  </button>
                </div>

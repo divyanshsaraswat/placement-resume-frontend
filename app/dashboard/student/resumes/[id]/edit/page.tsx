@@ -27,6 +27,7 @@ import { DocumentViewer } from "@/components/resume/DocumentViewer";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 
 export default function ResumeEditorPage() {
   const { id } = useParams();
@@ -54,6 +55,18 @@ export default function ResumeEditorPage() {
   const [isResizing, setIsResizing] = useState(false);
   const [showRemarkModal, setShowRemarkModal] = useState(false);
   const [latestVersionData, setLatestVersionData] = useState<any>(null);
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+    variant?: "danger" | "warning" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   const fetchResume = async () => {
     try {
@@ -100,9 +113,13 @@ export default function ResumeEditorPage() {
   }, [searchParams]);
 
   const handleReload = () => {
-    if (confirm("Reload from cloud? Unsaved changes will be lost.")) {
-      fetchResume();
-    }
+    setConfirmConfig({
+      isOpen: true,
+      title: "Reload Document",
+      message: "Are you sure you want to reload from the cloud vault? Any unsaved local changes will be permanently lost.",
+      variant: "warning",
+      onConfirm: () => fetchResume(),
+    });
   };
 
   const handleDownload = () => {
@@ -182,21 +199,25 @@ export default function ResumeEditorPage() {
 
   const handleBack = async () => {
     if (hasUnsavedChanges) {
-      if (confirm("You have unsaved changes. Save them before leaving?")) {
-        try {
-          setIsSaving(true);
-          await resumeApi.saveResume(id as string, { content: code });
-          toast.success("Changes saved!");
-          setHasUnsavedChanges(false);
-          router.push("/dashboard/student/resumes");
-        } catch (err) {
-          toast.error("Failed to save changes. Please try again.");
-        } finally {
-          setIsSaving(false);
+      setConfirmConfig({
+        isOpen: true,
+        title: "Unsaved Changes",
+        message: "You have unsaved institutional data. Would you like to synchronize with the cloud before exiting?",
+        variant: "warning",
+        onConfirm: async () => {
+          try {
+            setIsSaving(true);
+            await resumeApi.saveResume(id as string, { content: code });
+            toast.success("Changes saved!");
+            setHasUnsavedChanges(false);
+            router.push("/dashboard/student/resumes");
+          } catch (err) {
+            toast.error("Cloud synchronization failed");
+          } finally {
+            setIsSaving(false);
+          }
         }
-      } else if (confirm("Discard changes and leave?")) {
-        router.push("/dashboard/student/resumes");
-      }
+      });
     } else {
       router.push("/dashboard/student/resumes");
     }
@@ -429,9 +450,25 @@ export default function ResumeEditorPage() {
 
   const handleSubmit = async () => {
     if (hasUnsavedChanges) {
-      if (!confirm("You have unsaved changes. These will not be included in the submission. Save first?")) {
-        return;
-      }
+      setConfirmConfig({
+        isOpen: true,
+        title: "Incomplete Synchronization",
+        message: "Your latest changes haven't been synced to the vault. Submit the last saved version anyway?",
+        variant: "warning",
+        onConfirm: async () => {
+          try {
+            setIsSubmitting(true);
+            await resumeApi.submitResume(id as string);
+            toast.success("Document successfully moved to institutional verification queue");
+            fetchResume();
+          } catch (err) {
+            toast.error("Submission failed. Please try again.");
+          } finally {
+            setIsSubmitting(false);
+          }
+        }
+      });
+      return;
     }
 
     try {
@@ -797,6 +834,14 @@ export default function ResumeEditorPage() {
         error={aiError}
         onRetry={handleAnalyze}
         resumeContent={code || extractedText}
+      />
+      <ConfirmationDialog 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+        onConfirm={confirmConfig.onConfirm}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        variant={confirmConfig.variant}
       />
     </div>
   );

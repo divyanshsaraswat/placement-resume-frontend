@@ -9,6 +9,7 @@ import { adminApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useDebounce } from "@/hooks/use-debounce";
 import { AddUserDialog } from "@/components/dashboard/AddUserDialog";
+import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState<any[]>([]);
@@ -20,6 +21,18 @@ export default function UserManagementPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number, right: number } | null>(null);
   const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const [confirmConfig, setConfirmConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void | Promise<void>;
+    variant?: "danger" | "warning" | "info";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+    onConfirm: () => {},
+  });
 
   const debouncedSearch = useDebounce(search, 500);
 
@@ -79,17 +92,23 @@ export default function UserManagementPage() {
   }, []);
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Are you sure you want to delete this user? This action cannot be undone.")) return;
-    try {
-      await adminApi.deleteUser(userId);
-      toast.success("User deleted successfully");
-      fetchUsers();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete user");
-    } finally {
-      setOpenMenuId(null);
-    }
+    setOpenMenuId(null);
+    setConfirmConfig({
+      isOpen: true,
+      title: "Delete User Account",
+      message: "Are you sure you want to permanently delete this user? All associated data and access will be revoked. This action is irreversible.",
+      variant: "danger",
+      onConfirm: async () => {
+        try {
+          await adminApi.deleteUser(userId);
+          toast.success("User successfully removed from system");
+          fetchUsers();
+        } catch (err) {
+          console.error(err);
+          toast.error("Failed to delete user record");
+        }
+      }
+    });
   };
 
   const handleToggleStatus = async (user: any) => {
@@ -381,6 +400,15 @@ export default function UserManagementPage() {
         isOpen={isAddUserOpen}
         onClose={() => setIsAddUserOpen(false)}
         onSubmit={handleCreateUser}
+      />
+
+      <ConfirmationDialog 
+        isOpen={confirmConfig.isOpen}
+        onClose={() => setConfirmConfig({ ...confirmConfig, isOpen: false })}
+        onConfirm={confirmConfig.onConfirm}
+        title={confirmConfig.title}
+        message={confirmConfig.message}
+        variant={confirmConfig.variant}
       />
     </div>
   );
