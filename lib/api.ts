@@ -114,9 +114,11 @@ export const resumeApi = {
     const response = await api.post(`/resumes/${id}/submit`, null, { signal });
     return response.data;
   },
-  updateVersionStatus: async (resumeId: string, versionId: string, status: string, signal?: AbortSignal) => {
+  updateVersionStatus: async (resumeId: string, versionId: string, status: string, remark?: string, signal?: AbortSignal) => {
+    const params: any = { status };
+    if (remark) params.remark = remark;
     const response = await api.patch(`/resumes/${resumeId}/versions/${versionId}/status`, null, { 
-      params: { status },
+      params,
       signal 
     });
     return response.data;
@@ -272,6 +274,13 @@ export const adminApi = {
     if (params.search) searchParams.append("search", params.search);
     if (params.log_type) searchParams.append("log_type", params.log_type);
     return `${api.defaults.baseURL}/logs/export?${searchParams.toString()}`;
+  },
+};
+
+export const llmApi = {
+  getModelsInfo: async (signal?: AbortSignal) => {
+    const response = await api.get("/users/llm/models-info", { signal });
+    return response.data;
   },
 };
 

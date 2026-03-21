@@ -34,6 +34,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isSuperadmin: userData.role === "admin",
         department: userData.department,
         avatar: userData.avatar,
+        picture: userData.picture,
+        llmCredits: userData.llm_credits,
+        preferredModel: userData.preferred_model,
       };
       
       setState({
@@ -76,6 +79,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isSuperadmin: userData.role === "admin",
             department: userData.department,
             avatar: userData.avatar,
+            picture: userData.picture,
+            llmCredits: userData.llm_credits,
+            preferredModel: userData.preferred_model,
           };
           
           setState({

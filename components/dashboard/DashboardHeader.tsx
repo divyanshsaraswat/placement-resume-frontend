@@ -1,7 +1,9 @@
 "use client";
 
 import { useAuth } from "@/context/auth-context";
-import { LogOut, Bell, Search, User, Menu, Settings, ChevronRight, Sparkles, MessageSquare, Sun, Moon } from "lucide-react";
+import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { LogOut, Bell, Search, User, Menu, Settings, ChevronRight, Sparkles, MessageSquare, Sun, Moon, Send, Cpu } from "lucide-react";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
@@ -16,6 +18,8 @@ interface DashboardHeaderProps {
 
 export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const { user, logout } = useAuth();
+  const { data: session } = useSession();
+  const router = useRouter();
   const [notifications, setNotifications] = useState<any[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const { theme, setTheme } = useTheme();
@@ -49,8 +53,32 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
     const controller = new AbortController();
     fetchNotifications(controller.signal);
 
-    // Poll for new notifications every 30 seconds
-    const interval = setInterval(() => fetchNotifications(controller.signal), 30000);
+    // Real-time notifications via SSE
+    let eventSource: EventSource | null = null;
+    
+    const setupSSE = () => {
+      const token = (session as any)?.accessToken;
+      if (!token) return;
+
+      // Direct EventSource to the stream endpoint with token
+      const url = `/api/v1/notifications/stream?token=${token}`;
+      eventSource = new EventSource(url);
+      
+      eventSource.onmessage = (event) => {
+        if (event.data === "update") {
+          fetchNotifications();
+        }
+      };
+
+      eventSource.onerror = (err) => {
+        console.error("SSE Connection error:", err);
+        eventSource?.close();
+        // Retry after 5 seconds
+        setTimeout(setupSSE, 5000);
+      };
+    };
+
+    setupSSE();
 
     function handleClickOutside(event: MouseEvent) {
       if (notificationRef.current && !notificationRef.current.contains(event.target as Node)) {
@@ -64,7 +92,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
-      clearInterval(interval);
+      eventSource?.close();
       controller.abort();
     };
   }, []);
@@ -79,12 +107,19 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
     }
   };
 
+  useEffect(() => {
+    if (isNotificationsOpen && unreadCount > 0) {
+      handleMarkAllRead();
+    }
+  }, [isNotificationsOpen, unreadCount]);
+
   const getNotificationIcon = (type: string) => {
     switch (type) {
       case 'resume_approved': return { icon: Sparkles, color: 'text-primary' };
       case 'resume_rejected': return { icon: MessageSquare, color: 'text-rose-500' };
       case 'new_feedback': return { icon: MessageSquare, color: 'text-blue-500' };
       case 'ai_analysis_complete': return { icon: Sparkles, color: 'text-primary' };
+      case 'resume_submitted': return { icon: Send, color: 'text-amber-500' };
       default: return { icon: Bell, color: 'text-slate-400' };
     }
   };
@@ -166,11 +201,24 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                         <button 
                           key={n._id} 
                           onClick={async () => {
+                            // Mark as read
                             if (!n.is_read) {
                               await notificationApi.markAsRead(n._id);
                               setNotifications(prev => prev.map(item => item._id === n._id ? { ...item, is_read: true } : item));
                               setUnreadCount(prev => Math.max(0, prev - 1));
                             }
+
+                            // Navigate based on type and metadata
+                            if (n.metadata?.resume_id) {
+                              const resumeId = n.metadata.resume_id;
+                              if (n.type === 'resume_submitted') {
+                                const role = user?.role === 'spc' ? 'spc' : 'faculty';
+                                router.push(`/dashboard/${role}/validate/${resumeId}`);
+                              } else if (['resume_approved', 'resume_rejected', 'new_feedback'].includes(n.type)) {
+                                router.push(`/dashboard/student/resumes/${resumeId}/edit?openReview=true`);
+                              }
+                            }
+                            setIsNotificationsOpen(false);
                           }}
                           className={cn(
                             "w-full text-left p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors flex gap-4 group relative",
@@ -218,19 +266,27 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
               setIsNotificationsOpen(false);
             }}
             className={cn(
-              "flex items-center gap-3 w-10 h-10 sm:w-auto p-0 sm:p-1 sm:pl-3 rounded-2xl transition-all group justify-center sm:justify-start",
+              "flex items-center gap-2 md:gap-3 p-1 rounded-2xl transition-all group",
               isProfileOpen ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900"
             )}
           >
-            <div className="text-right hidden sm:block leading-tight">
-              <p className="text-xs font-bold text-slate-900 dark:text-white">{user?.name}</p>
-              <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{user?.role}</p>
+            {user?.llmCredits !== undefined && (
+              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary animate-in fade-in slide-in-from-right-2 duration-500">
+                <Sparkles size={12} className="shrink-0" />
+                <span className="text-[10px] font-bold uppercase tracking-wider">{user.llmCredits}</span>
+              </div>
+            )}
+            <div className="text-right hidden md:block leading-tight">
+              <p className="text-[11px] font-bold text-slate-800 dark:text-white uppercase tracking-tight">{user?.name || 'Guest User'}</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-0.5">{user?.role || 'Visitor'}</p>
             </div>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800 shadow-sm relative group-hover:scale-105 transition-transform duration-300">
-               {user?.avatar ? (
-                 <img src={user.avatar} alt={user.name} className="w-full h-full object-cover" />
+            <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm relative group-hover:scale-105 transition-transform duration-300">
+               {user?.picture || user?.avatar ? (
+                 <img src={user.picture || user.avatar} alt={user?.name} className="w-full h-full object-cover" />
                ) : (
-                 <User size={18} strokeWidth={1.5} className="text-primary" />
+                 <div className="w-full h-full flex items-center justify-center bg-white dark:bg-slate-950">
+                    <User size={20} strokeWidth={1.5} className="text-primary" />
+                 </div>
                )}
             </div>
           </button>
@@ -244,8 +300,39 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                 className="fixed md:absolute top-16 md:top-full left-4 right-4 md:left-auto md:right-0 mt-3 md:w-56 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-2xl rounded-[1.5rem] overflow-hidden z-50 p-2"
               >
                 <div className="p-3 mb-2 hidden max-sm:block border-b border-slate-50 dark:border-slate-800">
-                  <p className="text-xs font-bold text-slate-900 dark:text-white">{user?.name}</p>
-                  <p className="text-[10px] text-slate-400 uppercase tracking-widest">{user?.role}</p>
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-100 dark:border-slate-800">
+                      {user?.picture || user?.avatar ? (
+                        <img src={user.picture || user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-900">
+                           <User size={14} className="text-primary" />
+                        </div>
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-800 dark:text-white uppercase tracking-tight">{user?.name}</p>
+                      <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">{user?.role}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="px-3 py-2.5 mb-2 rounded-xl bg-primary/5 border border-primary/10 mx-1">
+                   <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-center gap-2 text-primary">
+                        <Cpu size={14} />
+                        <span className="text-[10px] font-bold uppercase tracking-wider">AI Credits</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-primary">{user?.llmCredits || 0} left</span>
+                   </div>
+                   <div className="w-full h-1 bg-primary/10 rounded-full overflow-hidden">
+                      <motion.div 
+                        initial={{ width: 0 }}
+                        animate={{ width: `${Math.min(100, ((user?.llmCredits || 0) / 20) * 100)}%` }}
+                        className="h-full bg-primary"
+                      />
+                   </div>
+                   <p className="text-[8px] text-slate-400 mt-1.5 font-medium italic text-right">Refills hourly</p>
                 </div>
                 
                 <Link 

@@ -9,10 +9,15 @@ import {
   Sparkles,
   CheckCircle,
   FileCode,
-  ChevronRight
+  ChevronRight,
+  MessageSquare,
+  User,
+  Calendar,
+  X,
+  AlertCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { resumeApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
@@ -26,12 +31,14 @@ import remarkBreaks from "remark-breaks";
 export default function ResumeEditorPage() {
   const { id } = useParams();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [resumeName, setResumeName] = useState("");
   const [format, setFormat] = useState<string>("latex");
   const [code, setCode] = useState("");
   const [extractedText, setExtractedText] = useState("");
   const [isCompiling, setIsCompiling] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isAIOpen, setIsAIOpen] = useState(false);
@@ -45,6 +52,8 @@ export default function ResumeEditorPage() {
 
   const [leftWidth, setLeftWidth] = useState(60); // percentage
   const [isResizing, setIsResizing] = useState(false);
+  const [showRemarkModal, setShowRemarkModal] = useState(false);
+  const [latestVersionData, setLatestVersionData] = useState<any>(null);
 
   const fetchResume = async () => {
     try {
@@ -53,6 +62,7 @@ export default function ResumeEditorPage() {
       const vCount = data.versions?.length || 1;
       setResumeName(`${latestVersion?.type || "Technical Resume"} - v${vCount}`);
       if (latestVersion) {
+          setLatestVersionData(latestVersion);
           setFormat(latestVersion.format || "latex");
           setCode(latestVersion.latex_code || "");
           setExtractedText(latestVersion.parsed_data?.extracted_text || "");
@@ -82,6 +92,12 @@ export default function ResumeEditorPage() {
   useEffect(() => {
     if (id) fetchResume();
   }, [id]);
+
+  useEffect(() => {
+    if (searchParams?.get('openReview') === 'true') {
+      setShowRemarkModal(true);
+    }
+  }, [searchParams]);
 
   const handleReload = () => {
     if (confirm("Reload from cloud? Unsaved changes will be lost.")) {
@@ -247,8 +263,13 @@ export default function ResumeEditorPage() {
           }
         }).catch(err => console.error("Failed to sync score:", err));
       }
-    } catch (err) {
-      setAiError("Institutional AI node is temporarily unreachable. Please ensure you're connected to the campus network.");
+    } catch (err: any) {
+      if (err.response?.status === 402) {
+        setAiError("⚠️ Institutional Rate Limit Reached: Your hourly LLM credits have been exhausted. Refills happen every 60 minutes.");
+        toast.error("Insufficient credits for AI analysis");
+      } else {
+        setAiError("Institutional AI node is temporarily unreachable. Please ensure you're connected to the campus network.");
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -406,17 +427,126 @@ export default function ResumeEditorPage() {
 
   const [mobileView, setMobileView] = useState<"editor" | "preview">("editor");
 
+  const handleSubmit = async () => {
+    if (hasUnsavedChanges) {
+      if (!confirm("You have unsaved changes. These will not be included in the submission. Save first?")) {
+        return;
+      }
+    }
+
+    try {
+      setIsSubmitting(true);
+      await resumeApi.submitResume(id as string);
+      toast.success("Document successfully moved to institutional verification queue");
+      fetchResume();
+    } catch (err) {
+      toast.error("Submission failed. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden relative bg-background">
       <EditorHeader 
         isSaving={isSaving}
+        isSubmitting={isSubmitting}
         hasUnsavedChanges={hasUnsavedChanges}
         onSave={handleSave}
+        onSubmit={handleSubmit}
         onBack={handleBack}
         onAIOpen={handleAnalyze}
         onDownload={handleDownload}
         title={resumeName || (format === 'latex' ? "Institutional Technical Resume" : `${format.toUpperCase()} Document Review`)}
+        status={latestVersionData?.status}
+        onShowRemark={() => setShowRemarkModal(true)}
       />
+
+      {/* Dynamic Status Remark Modal */}
+      <AnimatePresence>
+        {showRemarkModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <div className="p-6 border-b border-border flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold tracking-tight flex items-center gap-2">
+                    Review Details
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[10px] uppercase tracking-widest font-bold",
+                       latestVersionData?.status === 'approved' ? "bg-emerald-500/10 text-emerald-600" :
+                       latestVersionData?.status === 'rejected' ? "bg-rose-500/10 text-rose-600" : "bg-amber-500/10 text-amber-600"
+                    )}>
+                      {latestVersionData?.status}
+                    </span>
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                    Feedback from Review Committee
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowRemarkModal(false)}
+                  className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <MessageSquare size={14} /> Official Remark
+                  </h4>
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                    {latestVersionData?.reviewer_remark ? (
+                       <span className="whitespace-pre-wrap">{latestVersionData.reviewer_remark}</span>
+                    ) : (
+                       <span className="italic text-slate-400">No specific remarks were provided by the reviewer.</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><User size={12}/> Reviewer</span>
+                      <div className="flex items-center gap-2">
+                        {latestVersionData?.reviewer_picture_url ? (
+                          <img 
+                            src={latestVersionData.reviewer_picture_url} 
+                            alt="Reviewer" 
+                            className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                            <User size={10} className="text-slate-400" />
+                          </div>
+                        )}
+                        <p className="text-xs font-bold">{latestVersionData?.reviewer_name || "Unknown Reviewer"}</p>
+                      </div>
+                   </div>
+                   <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Calendar size={12}/> Date</span>
+                      <p className="text-xs font-bold">{latestVersionData?.reviewed_at ? new Date(latestVersionData.reviewed_at).toLocaleString() : "N/A"}</p>
+                   </div>
+                </div>
+
+              </div>
+              <div className="p-4 border-t border-border bg-slate-50 dark:bg-slate-800/50 flex justify-end">
+                <button 
+                  onClick={() => setShowRemarkModal(false)}
+                  className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-bold uppercase tracking-widest hover:scale-105 transition"
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
       {/* Mobile View Switcher */}
       {format === 'latex' && (
@@ -627,17 +757,6 @@ export default function ResumeEditorPage() {
                       </div>
                    )}
 
-                   {/* Actions */}
-                   <div className="space-y-4">
-                      <button 
-                        onClick={() => setIsAIOpen(true)}
-                        className="w-full px-8 py-5 rounded-2xl bg-[#2563EB] text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_20px_40px_rgba(37,99,235,0.15)] hover:scale-[1.02] transition-all flex items-center justify-center gap-3 active:scale-95 group"
-                      >
-                         Initialize LaTeX Synthesis <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
-                      </button>
-                      <p className="text-[10px] text-center text-slate-400 font-medium">Use the AI strategically to convert this document into a structured template.</p>
-                   </div>
-
                    {/* Metrics */}
                    <div className="grid grid-cols-1 gap-4">
                       {impactFeedback && (
@@ -654,7 +773,7 @@ export default function ResumeEditorPage() {
                                  p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
                                }}
                              >
-                               {impactFeedback}
+                               {impactFeedback.replace(/(\*\*[^*]+\*\*)([a-zA-Z])/g, '$1\n\n$2')}
                              </ReactMarkdown>
                           </div>
                         </div>

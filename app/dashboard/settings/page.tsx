@@ -25,7 +25,7 @@ import { cn } from "@/lib/utils";
 import { Variants } from "framer-motion";
 import { toast } from "sonner";
 import { useTheme } from "next-themes";
-import { adminApi } from "@/lib/api";
+import { adminApi, llmApi } from "@/lib/api";
 
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
@@ -41,9 +41,17 @@ export default function SettingsPage() {
   const [notifications, setNotifications] = useState(true);
 
   const [institutional, setInstitutional] = useState({
-    aiProvider: "openrouter",
+    aiProvider: "groq",
     compilationTimeout: "30",
   });
+
+  const [llmInfo, setLlmInfo] = useState<{
+    models: Record<string, number>;
+    default: string;
+    hourly_limit: number;
+  } | null>(null);
+
+  const [selectedModel, setSelectedModel] = useState<string>(user?.preferredModel || "");
 
   // Avoid hydration mismatch
   useEffect(() => {
@@ -53,7 +61,21 @@ export default function SettingsPage() {
         name: user.name,
         department: user.department || "Computer Science"
       });
+      setSelectedModel(user.preferredModel || "");
     }
+    
+    const fetchLlmInfo = async () => {
+      try {
+        const info = await llmApi.getModelsInfo();
+        setLlmInfo(info);
+        if (!selectedModel && info.default) {
+           setSelectedModel(info.default);
+        }
+      } catch (err) {
+        console.error("Failed to fetch LLM info", err);
+      }
+    };
+    fetchLlmInfo();
   }, [user]);
 
   const handleSave = async () => {
@@ -62,8 +84,8 @@ export default function SettingsPage() {
     setIsSaving(true);
     try {
       await adminApi.updateUser(user.id, {
-        name: profile.name,
-        department: profile.department
+        department: profile.department,
+        preferred_model: selectedModel
       });
       
       await refreshUser();
@@ -149,9 +171,10 @@ export default function SettingsPage() {
                   <input 
                     type="text" 
                     value={profile.name}
-                    onChange={(e) => setProfile({...profile, name: e.target.value})}
-                    className="w-full px-5 py-3 bg-transparent border-0 border-b-2 border-slate-100 dark:border-slate-800 focus:border-primary outline-none transition-all text-sm font-medium text-slate-900 dark:text-white rounded-none"
+                    readOnly
+                    className="w-full px-5 py-3 bg-slate-50 dark:bg-slate-900/40 border-0 border-b-2 border-slate-100 dark:border-slate-800 text-slate-400 cursor-not-allowed outline-none transition-all text-sm font-medium rounded-none"
                   />
+                  <p className="text-[9px] text-slate-400 italic font-medium px-1 pt-1 opacity-60">Identity is managed via Institutional SSO</p>
                </div>
                <div className="space-y-2">
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 pl-1">Email Address</label>
@@ -268,57 +291,77 @@ export default function SettingsPage() {
             </div>
           </motion.section>
 
-          {/* Section: Admin Only */}
-          {user?.role === "admin" && (
-            <motion.section 
-              variants={itemVariants} 
-              className="p-8 rounded-[2.5rem] bg-indigo-50/50 dark:bg-indigo-950/20 border border-indigo-100/50 dark:border-indigo-900/50 space-y-8 mt-12 shadow-sm"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 bg-white dark:bg-slate-900 rounded-2xl shadow-sm text-primary">
-                    <Cpu size={24} strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h2 className="text-lg font-bold tracking-tight text-slate-900 dark:text-white">Institutional Configuration</h2>
-                    <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-[0.15em]">Admin Control Plane</p>
-                  </div>
-                </div>
+          {/* Section: Institutional AI (Unified for all roles) */}
+          <motion.section variants={itemVariants} className="space-y-6 pt-4">
+            <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-3">
+                <Sparkles size={18} className="text-primary" strokeWidth={1.5} />
+                <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100">Institutional AI Hub</h2>
               </div>
+              <div className="px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 flex items-center gap-2">
+                <Cpu size={12} className="text-primary" />
+                <span className="text-[10px] font-bold text-primary uppercase tracking-widest">{user?.llmCredits || 0} / {llmInfo?.hourly_limit || 20} CREDITS</span>
+              </div>
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 flex items-center gap-2">
-                       <Sparkles size={12} /> AI Intelligence Node
-                    </label>
-                    <select 
-                      value={institutional.aiProvider}
-                      onChange={(e) => setInstitutional({...institutional, aiProvider: e.target.value})}
-                      className="w-full px-5 py-3.5 bg-transparent border-0 border-b-2 border-indigo-200 dark:border-indigo-900 focus:border-primary outline-none transition-all text-sm font-medium appearance-none rounded-none cursor-pointer"
-                    >
-                      <option value="openrouter">OpenRouter (Optimized)</option>
-                      <option value="groq">Groq (LPU Speed)</option>
-                    </select>
-                    <p className="text-[10px] text-slate-400 px-1 font-medium italic">Currently routing via Deepseek-V3 on OpenRouter</p>
-                 </div>
+            <p className="text-xs text-slate-500 leading-relaxed max-w-lg">
+              Select your intelligence node. Higher complexity models consume more credits per analysis or chat request.
+            </p>
 
-                 <div className="space-y-3">
-                    <label className="text-[10px] font-bold uppercase tracking-widest text-indigo-400 flex items-center gap-2">
-                       <Database size={12} /> Compilation Timeout
-                    </label>
-                    <div className="relative">
-                       <input 
-                         type="number" 
-                         value={institutional.compilationTimeout}
-                         onChange={(e) => setInstitutional({...institutional, compilationTimeout: e.target.value})}
-                         className="w-full px-5 py-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-indigo-100 dark:border-indigo-900 focus:border-primary outline-none transition-all text-sm font-medium"
-                       />
-                       <span className="absolute right-5 top-1/2 -translate-y-1/2 text-[10px] font-bold text-slate-300 uppercase">seconds</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+               {llmInfo?.models && Object.entries(llmInfo.models).map(([model, cost]) => (
+                 <button 
+                  key={model}
+                  onClick={() => setSelectedModel(model)}
+                  className={cn(
+                    "flex flex-col gap-3 p-5 rounded-3xl border transition-all text-left relative group overflow-hidden",
+                    selectedModel === model 
+                      ? "border-primary bg-primary/5 shadow-lg shadow-primary/5" 
+                      : "border-slate-100 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-600 bg-white dark:bg-slate-950"
+                  )}
+                 >
+                    {selectedModel === model && (
+                      <motion.div 
+                        layoutId="active-model"
+                        className="absolute inset-0 bg-primary/5 pointer-events-none"
+                        transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                      />
+                    )}
+                    <div className="flex justify-between items-start gap-2 relative z-10 w-full">
+                      <div className="space-y-1 min-w-0">
+                        <p className={cn(
+                          "text-xs font-bold truncate",
+                          selectedModel === model ? "text-primary" : "text-slate-700 dark:text-slate-200"
+                        )}>
+                          {model.split('/').pop()?.toUpperCase()}
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-medium truncate">Institutional AI Node</p>
+                      </div>
+                      <div className={cn(
+                        "px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight whitespace-nowrap",
+                        selectedModel === model ? "bg-primary text-white" : "bg-slate-100 dark:bg-slate-800 text-slate-500"
+                      )}>
+                        {cost} Credit{cost > 1 ? 's' : ''}
+                      </div>
                     </div>
-                 </div>
-              </div>
-            </motion.section>
-          )}
+                 </button>
+               ))}
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/50 flex gap-4">
+               <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center shrink-0">
+                  <Monitor size={14} className="text-amber-600 dark:text-amber-400" />
+               </div>
+               <div className="space-y-1">
+                  <p className="text-xs font-bold text-amber-800 dark:text-amber-300 uppercase tracking-tight">Credit Information</p>
+                  <p className="text-[11px] text-amber-700/80 dark:text-amber-400/80 leading-relaxed font-medium">
+                    Credits reset every 60 minutes. High-usage periods might trigger institutional rate limits. 
+                    Currently using {selectedModel.split('/').pop()} at {llmInfo?.models?.[selectedModel] || 1} cred/req.
+                  </p>
+               </div>
+            </div>
+          </motion.section>
+
 
           {/* Action Footer */}
           <motion.div variants={itemVariants} className="pt-8 flex items-center justify-end">

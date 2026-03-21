@@ -8,6 +8,9 @@ export interface User {
   isSuperadmin: boolean;
   department?: string;
   avatar?: string;
+  picture?: string;
+  llmCredits?: number;
+  preferredModel?: string;
 }
 
 export interface AuthState {

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/context/auth-context";
-import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2, FileCode, FilePenLine, Trash2, Trash, Send, Download, CheckCircle, Upload, Sparkles } from "lucide-react";
+import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2, FileCode, FilePenLine, Trash2, Trash, Send, Download, CheckCircle, Upload, Sparkles, MessageSquare, User, Calendar, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { resumeApi } from "@/lib/api";
@@ -24,6 +24,8 @@ export default function StudentResumesPage() {
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number, right: number } | null>(null);
   const buttonRefs = useRef<{ [key: string]: HTMLButtonElement | null }>({});
+  const [showRemarkModal, setShowRemarkModal] = useState(false);
+  const [selectedVersionData, setSelectedVersionData] = useState<any>(null);
 
   const fetchResumes = async (signal?: AbortSignal) => {
     try {
@@ -158,6 +160,7 @@ export default function StudentResumesPage() {
       resumeId: resume.id || resume._id,
       versionIndex: index + 1,
       totalVersions: resume.versions.length,
+      reviewHistory: resume.review_history || [],
       // We'll use this for the unique key
       key: `${resume.id || resume._id}-${version.version_id || index}`
     }))
@@ -304,12 +307,21 @@ export default function StudentResumesPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className={cn(
-                        "px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border transition-all",
-                        statusColors[version.status as string] || statusColors.draft
-                      )}>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (version.status === 'approved' || version.status === 'rejected') {
+                            setSelectedVersionData(version);
+                            setShowRemarkModal(true);
+                          }
+                        }}
+                        className={cn(
+                          "px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border transition-all",
+                          statusColors[version.status as string] || statusColors.draft,
+                          (version.status === 'approved' || version.status === 'rejected') && "hover:opacity-80 cursor-pointer"
+                        )}>
                         {version.status || "draft"}
-                      </div>
+                      </button>
                       <button 
                         ref={el => { buttonRefs.current[cardId] = el; }}
                         onClick={(e) => {
@@ -462,16 +474,164 @@ export default function StudentResumesPage() {
         onCreate={handleCreateResume}
       />
 
-      {versionDialogResume && (
-        <AddVersionDialog
-          isOpen={!!versionDialogResume}
-          onClose={() => setVersionDialogResume(null)}
-          resumeId={versionDialogResume.id}
-          currentFormat={versionDialogResume.format}
-          currentType={versionDialogResume.type}
-          onAddVersion={handleAddVersion}
-        />
-      )}
+      <AnimatePresence>
+        {versionDialogResume && (
+          <AddVersionDialog 
+            isOpen={!!versionDialogResume} 
+            onClose={() => setVersionDialogResume(null)}
+            resumeId={versionDialogResume?.id || ""}
+            currentFormat={versionDialogResume?.format || "latex"}
+            currentType={versionDialogResume?.type || "Technical Resume"}
+            onAddVersion={handleAddVersion}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Dynamic Status Remark Modal */}
+      <AnimatePresence>
+        {showRemarkModal && selectedVersionData && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowRemarkModal(false)}>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <div className="p-6 border-b border-border flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold tracking-tight flex items-center gap-2">
+                    Review Details
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[10px] uppercase tracking-widest font-bold border",
+                       statusColors[selectedVersionData.status as string] || statusColors.draft
+                    )}>
+                      {selectedVersionData.status}
+                    </span>
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                    Feedback from Review Committee
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowRemarkModal(false)}
+                  className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <MessageSquare size={14} /> Official Remark
+                  </h4>
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                    {selectedVersionData.reviewer_remark ? (
+                       <span className="whitespace-pre-wrap">{selectedVersionData.reviewer_remark}</span>
+                    ) : (
+                       <span className="italic text-slate-400">No specific remarks were provided by the reviewer.</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><User size={12}/> Reviewer</span>
+                      <div className="flex items-center gap-2">
+                        {selectedVersionData.reviewer_picture_url ? (
+                          <img 
+                            src={selectedVersionData.reviewer_picture_url} 
+                            alt="Reviewer" 
+                            className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                            <User size={10} className="text-slate-400" />
+                          </div>
+                        )}
+                        <p className="text-xs font-bold">{selectedVersionData.reviewer_name || "Unknown Reviewer"}</p>
+                      </div>
+                   </div>
+                   <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Calendar size={12}/> Date</span>
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        {selectedVersionData.reviewed_at ? new Date(selectedVersionData.reviewed_at).toLocaleString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : "N/A"}
+                      </p>
+                   </div>
+                </div>
+
+                {/* History Section */}
+                {selectedVersionData.reviewHistory && selectedVersionData.reviewHistory.length > 1 && (
+                  <div className="space-y-4 pt-4 border-t border-slate-100 dark:border-slate-800/50">
+                    <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                      <Sparkles size={14} /> Review Timeline
+                    </h4>
+                    <div className="space-y-3 max-h-40 overflow-y-auto pr-2 scrollbar-hide">
+                      {selectedVersionData.reviewHistory.map((item: any, idx: number) => (
+                        <div key={idx} className="relative pl-6 pb-2 last:pb-0">
+                          {/* Timeline Line */}
+                          {idx !== selectedVersionData.reviewHistory.length - 1 && (
+                            <div className="absolute left-2.5 top-5 w-px h-full bg-slate-100 dark:bg-slate-800" />
+                          )}
+                          {/* Timeline Dot */}
+                          <div className={cn(
+                            "absolute left-0 top-1.5 w-5 h-5 rounded-full border-2 border-white dark:border-slate-900 z-10 flex items-center justify-center shadow-sm",
+                            idx === 0 ? "bg-primary" : "bg-slate-200 dark:bg-slate-700"
+                          )}>
+                             {idx === 0 ? <CheckCircle size={8} className="text-white" /> : <div className="w-1.5 h-1.5 rounded-full bg-white dark:bg-slate-400" />}
+                          </div>
+                          
+                          <div className="space-y-1">
+                            <div className="flex justify-between items-center">
+                              <span className={cn(
+                                "text-[9px] font-bold uppercase tracking-widest px-1.5 py-0.5 rounded border",
+                                statusColors[item.status] || statusColors.draft
+                              )}>
+                                {item.status}
+                              </span>
+                              <span className="text-[8px] font-medium text-slate-400">
+                                {new Date(item.reviewed_at).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 line-clamp-1 italic">
+                              "{item.remark || "No remark provided"}"
+                            </p>
+                            <div className="flex items-center gap-1.5 opacity-60">
+                              {item.reviewer_picture_url ? (
+                                <img src={item.reviewer_picture_url} className="w-3.5 h-3.5 rounded-full" />
+                              ) : (
+                                <User size={8} />
+                              )}
+                              <span className="text-[8px] font-bold">{item.reviewer_name}</span>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+              </div>
+              <div className="p-4 border-t border-border bg-slate-50 dark:bg-slate-800/50 flex justify-end">
+                <button 
+                  onClick={() => setShowRemarkModal(false)}
+                  className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-bold uppercase tracking-widest hover:scale-105 transition"
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
     </div>
   );
 }

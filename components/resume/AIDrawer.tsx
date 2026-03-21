@@ -95,10 +95,14 @@ export function AIDrawer({
           return newMsgs;
         });
       }, resumeContent);
-    } catch (err) {
+    } catch (err: any) {
+      let errorMsg = "I encountered an error while processing your request. Please try again or check your connectivity.";
+      if (err.response?.status === 402) {
+        errorMsg = "⚠️ **Institutional Rate Limit Reached**: Your hourly LLM credits have been exhausted. Please wait for the next refill (refills happen every hour) or check your usage in Settings.";
+      }
       setMessages(prev => [
         ...prev.slice(0, -1),
-        { role: "ai", content: "I encountered an error while processing your request. Please try again or check your connectivity." }
+        { role: "ai", content: errorMsg }
       ]);
     }
   };
