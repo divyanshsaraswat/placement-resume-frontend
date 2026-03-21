@@ -45,6 +45,7 @@ interface AIDrawerProps {
   error?: string | null;
   onRetry?: () => void;
   resumeContent?: string;
+  format?: string;
 }
 
 export function AIDrawer({ 
@@ -57,13 +58,25 @@ export function AIDrawer({
   isLoading, 
   error,
   onRetry,
-  resumeContent
+  resumeContent,
+  format = "latex"
 }: AIDrawerProps) {
   const [messages, setMessages] = useState<Message[]>([
-    { role: "ai", content: "Hello! I'm your institutional AI companion. How can I help refine your LaTeX resume today?" }
+    { 
+      role: "ai", 
+      content: `Hello! I'm your institutional AI companion. How can I help refine your ${format === 'latex' ? 'LaTeX ' : ''}resume today?`.replace('  ', ' ')
+    }
   ]);
   const [input, setInput] = useState("");
+  const [activeTab, setActiveTab] = useState<"analysis" | "chat">("analysis");
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // Only set default if it's the first time drawer is opening in this session or after score changes
+    // But user says: "By-default keep the active tab to analysis."
+    // And "refreshing the analysis shouldn't change the tab to assistant (chat)"
+    // So the previous useEffect was causing the unwanted behavior.
+  }, [isOpen]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -87,14 +100,21 @@ export function AIDrawer({
           const newMsgs = [...prev];
           const lastIdx = newMsgs.length - 1;
           if (lastIdx >= 0 && newMsgs[lastIdx].role === "ai") {
+            let nextContent = newMsgs[lastIdx].content + chunk;
+            // Post-process to remove LaTeX mentions if not in LaTeX mode
+            if (format !== 'latex') {
+              nextContent = nextContent.replace(/latex\s+resume/gi, 'resume');
+              nextContent = nextContent.replace(/latex\s+code/gi, 'content');
+              nextContent = nextContent.replace(/latex/gi, 'document');
+            }
             newMsgs[lastIdx] = { 
               ...newMsgs[lastIdx], 
-              content: newMsgs[lastIdx].content + chunk 
+              content: nextContent 
             };
           }
           return newMsgs;
         });
-      }, resumeContent);
+      }, resumeContent, format);
     } catch (err: any) {
       let errorMsg = "I encountered an error while processing your request. Please try again or check your connectivity.";
       if (err.response?.status === 402) {
@@ -155,10 +175,41 @@ export function AIDrawer({
               </button>
             </div>
 
+            {/* Mobile Tab Switcher */}
+            <div className="flex md:hidden items-center justify-center p-4 border-b border-border/50 bg-white/50 dark:bg-slate-900/50 shrink-0">
+               <div className="flex bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl w-full max-w-sm border border-border/50 shadow-inner">
+                  <button
+                    onClick={() => setActiveTab("analysis")}
+                    className={cn(
+                      "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all",
+                      activeTab === "analysis" 
+                        ? "bg-white dark:bg-slate-700 text-primary shadow-lg shadow-black/5" 
+                        : "text-muted-foreground hover:text-slate-600 dark:hover:text-slate-300"
+                    )}
+                  >
+                    Analysis
+                  </button>
+                  <button
+                    onClick={() => setActiveTab("chat")}
+                    className={cn(
+                      "flex-1 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-[0.2em] transition-all",
+                      activeTab === "chat" 
+                        ? "bg-white dark:bg-slate-700 text-primary shadow-lg shadow-black/5" 
+                        : "text-muted-foreground hover:text-slate-600 dark:hover:text-slate-300"
+                    )}
+                  >
+                    Chat
+                  </button>
+               </div>
+            </div>
+
             {/* Content Split */}
-            <div className="flex-1 flex flex-col-reverse md:flex-row overflow-hidden">
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
                {/* Messages Area */}
-               <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+               <div className={cn(
+                 "flex-1 flex flex-col min-w-0 h-full overflow-hidden transition-all duration-300",
+                 activeTab !== "chat" ? "hidden md:flex" : "flex"
+               )}>
                   <div 
                     ref={scrollRef}
                     className="flex-1 overflow-y-auto p-6 md:p-10 space-y-5 md:space-y-6 scrollbar-hide"
@@ -180,9 +231,9 @@ export function AIDrawer({
                             {msg.role === "ai" ? <Bot size={16} /> : <MessageSquare size={16} />}
                          </div>
                           <div className={cn(
-                            "px-5 py-3.5 rounded-[1.5rem] text-sm leading-relaxed",
+                            "px-5 py-3.5 rounded-[1.5rem] text-sm leading-relaxed max-w-full overflow-hidden break-words",
                             msg.role === "ai" 
-                              ? "bg-slate-50 dark:bg-slate-900 border border-border/40 text-foreground shadow-sm max-w-none"
+                              ? "bg-slate-50 dark:bg-slate-900 border border-border/40 text-foreground shadow-sm"
                               : "bg-primary text-white font-medium"
                           )}>
                             {msg.role === "ai" ? (
@@ -203,7 +254,7 @@ export function AIDrawer({
                                             <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{className?.replace('language-', '') || 'code'}</span>
                                             <CopyButton text={codeStr} />
                                           </div>
-                                          <pre className="overflow-x-auto p-4 bg-slate-950 text-slate-100 text-xs font-mono leading-relaxed whitespace-pre scrollbar-hide"><code>{codeStr}</code></pre>
+                                          <pre className="overflow-x-auto p-4 bg-slate-950 text-slate-100 text-xs font-mono leading-relaxed whitespace-pre-wrap break-all scrollbar-hide"><code>{codeStr}</code></pre>
                                         </div>
                                       );
                                     }
@@ -217,7 +268,8 @@ export function AIDrawer({
                                 {(() => {
                                   let text = msg.content;
                                   // Detect long inline code that should be a block (e.g. `latex \documentclass...`)
-                                  text = text.replace(/(`)(latex\s+[^\n`]{30,})(`)/g, '\n\n```$2\n```\n\n');
+                                  // We split 'latex' from the content with a newline for proper MD formatting
+                                  text = text.replace(/(`)latex\s+([^\n`]{30,})(`)/gi, '\n\n```latex\n$2\n```\n\n');
                                   // Insert newlines before inline list markers like "* Item" not already at start of line
                                   text = text.replace(/([^\n])\* /g, '$1\n\n* ');
                                   // Split inline numbered list items
@@ -252,13 +304,16 @@ export function AIDrawer({
                           <Send size={15} />
                         </button>
                      </div>
-                  </div>
+                   </div>
                </div>
 
-                <div className="w-full md:w-[380px] lg:w-[420px] border-b md:border-b-0 md:border-l border-border/50 bg-slate-50/50 dark:bg-slate-950/30 p-6 md:p-8 space-y-6 md:space-y-8 overflow-y-auto max-h-[50vh] md:max-h-none shrink-0">
-                  <div className="space-y-6">
+                <div className={cn(
+                  "w-full h-full md:w-[380px] lg:w-[420px] md:border-l border-border/50 bg-slate-50/50 dark:bg-slate-950/30 overflow-y-auto shrink-0 transition-all duration-300 custom-scrollbar",
+                  activeTab !== "analysis" ? "hidden md:block" : "block"
+                )}>
+                  <div className="p-6 md:p-10 space-y-6 md:space-y-8">
                      <div className="flex items-center justify-between">
-                        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-[0.2em]">Institutional Analysis</h4>
+                        <h4 className="text-[10px] font-black text-muted-foreground uppercase tracking-[0.2em]">Institutional Analysis</h4>
                         {onRetry && !isLoading && (
                           <button 
                             onClick={onRetry}

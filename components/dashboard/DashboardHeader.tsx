@@ -3,7 +3,7 @@
 import { useAuth } from "@/context/auth-context";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LogOut, Bell, Search, User, Menu, Settings, ChevronRight, Sparkles, MessageSquare, Sun, Moon, Send, Cpu } from "lucide-react";
+import { LogOut, Bell, Search, User, Menu, Settings, ChevronRight, Sparkles, MessageSquare, Sun, Moon, Send, Cpu, RotateCw } from "lucide-react";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
@@ -17,7 +17,7 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const { data: session } = useSession();
   const router = useRouter();
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -26,6 +26,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
+  const [isRefreshingCredits, setIsRefreshingCredits] = useState(false);
   
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -104,6 +105,22 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
       setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
     } catch (err) {
       console.error(err);
+    }
+  };
+  
+  const handleRefreshCredits = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    if (isRefreshingCredits) return;
+    
+    setIsRefreshingCredits(true);
+    try {
+      await refreshUser();
+      // Ensure animation is visible
+      await new Promise(resolve => setTimeout(resolve, 800));
+    } catch (err) {
+      console.error("Refresh credits failed:", err);
+    } finally {
+      setIsRefreshingCredits(false);
     }
   };
 
@@ -260,36 +277,49 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
 
         {/* Profile Popover */}
         <div className="relative flex items-center gap-1" ref={profileRef}>
-          <button 
-            onClick={() => {
-              setIsProfileOpen(!isProfileOpen);
-              setIsNotificationsOpen(false);
-            }}
+          <div 
             className={cn(
               "flex items-center gap-2 md:gap-3 p-1 rounded-2xl transition-all group",
-              isProfileOpen ? "bg-slate-100 dark:bg-slate-800" : "hover:bg-slate-50 dark:hover:bg-slate-900"
+              isProfileOpen ? "bg-slate-100 dark:bg-slate-800" : ""
             )}
           >
             {user?.llmCredits !== undefined && (
-              <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary animate-in fade-in slide-in-from-right-2 duration-500">
-                <Sparkles size={12} className="shrink-0" />
-                <span className="text-[10px] font-bold uppercase tracking-wider">{user.llmCredits}</span>
+              <div className="hidden sm:flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-primary/10 border border-primary/20 text-primary animate-in fade-in slide-in-from-right-2 duration-500 group/pill">
+                <div className="flex items-center gap-1.5">
+                  <Sparkles size={12} className={cn("shrink-0", isRefreshingCredits && "animate-pulse")} />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">{user.llmCredits}</span>
+                </div>
+                <button 
+                  onClick={handleRefreshCredits}
+                  disabled={isRefreshingCredits}
+                  className="hover:text-primary/70 transition-colors"
+                >
+                  <RotateCw size={12} className={cn(isRefreshingCredits && "animate-spin")} />
+                </button>
               </div>
             )}
-            <div className="text-right hidden md:block leading-tight">
-              <p className="text-[11px] font-bold text-slate-800 dark:text-white uppercase tracking-tight">{user?.name || 'Guest User'}</p>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-0.5">{user?.role || 'Visitor'}</p>
-            </div>
-            <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm relative group-hover:scale-105 transition-transform duration-300">
-               {user?.picture || user?.avatar ? (
-                 <img src={user.picture || user.avatar} alt={user?.name} className="w-full h-full object-cover" />
-               ) : (
-                 <div className="w-full h-full flex items-center justify-center bg-white dark:bg-slate-950">
-                    <User size={20} strokeWidth={1.5} className="text-primary" />
-                 </div>
-               )}
-            </div>
-          </button>
+            <button
+              onClick={() => {
+                setIsProfileOpen(!isProfileOpen);
+                setIsNotificationsOpen(false);
+              }}
+              className="flex items-center gap-2 md:gap-3 hover:bg-slate-50 dark:hover:bg-slate-900 p-1 rounded-xl transition-all"
+            >
+              <div className="text-right hidden md:block leading-tight">
+                <p className="text-[11px] font-bold text-slate-800 dark:text-white uppercase tracking-tight">{user?.name || 'Guest User'}</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-0.5">{user?.role || 'Visitor'}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm relative group-hover:scale-105 transition-transform duration-300">
+                 {user?.picture || user?.avatar ? (
+                   <img src={user.picture || user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                 ) : (
+                   <div className="w-full h-full flex items-center justify-center bg-white dark:bg-slate-950">
+                      <User size={20} strokeWidth={1.5} className="text-primary" />
+                   </div>
+                 )}
+              </div>
+            </button>
+          </div>
 
           <AnimatePresence>
             {isProfileOpen && (
@@ -323,8 +353,17 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                         <Cpu size={14} />
                         <span className="text-[10px] font-bold uppercase tracking-wider">AI Credits</span>
                       </div>
-                      <span className="text-[10px] font-bold text-primary">{user?.llmCredits || 0} left</span>
-                   </div>
+                      <div className="flex items-center gap-2">
+                         <span className="text-[10px] font-bold text-primary">{user?.llmCredits || 0} left</span>
+                         <button 
+                            onClick={handleRefreshCredits}
+                            disabled={isRefreshingCredits}
+                            className="text-primary/50 hover:text-primary transition-colors"
+                         >
+                           <RotateCw size={10} className={cn(isRefreshingCredits && "animate-spin")} />
+                         </button>
+                       </div>
+                    </div>
                    <div className="w-full h-1 bg-primary/10 rounded-full overflow-hidden">
                       <motion.div 
                         initial={{ width: 0 }}

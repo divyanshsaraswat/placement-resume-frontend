@@ -114,6 +114,10 @@ export const resumeApi = {
     const response = await api.post(`/resumes/${id}/submit`, null, { signal });
     return response.data;
   },
+  setDefaultResume: async (id: string, signal?: AbortSignal) => {
+    const response = await api.post(`/resumes/${id}/set-default`, null, { signal });
+    return response.data;
+  },
   updateVersionStatus: async (resumeId: string, versionId: string, status: string, remark?: string, signal?: AbortSignal) => {
     const params: any = { status };
     if (remark) params.remark = remark;
@@ -140,14 +144,14 @@ export const resumeApi = {
     const response = await api.post("/ai/score-resume", { resume_text: content }, { signal });
     return response.data;
   },
-  streamChat: async (messages: { role: string; content: string }[], onChunk: (chunk: string) => void, resume_content?: string) => {
+  streamChat: async (messages: { role: string; content: string }[], onChunk: (chunk: string) => void, resume_content?: string, format: string = "latex") => {
     const response = await fetch(`${API_BASE_URL}/ai/chat/stream`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(authToken ? { "Authorization": `Bearer ${authToken}` } : {}),
       },
-      body: JSON.stringify({ messages, resume_content }),
+      body: JSON.stringify({ messages, resume_content, format }),
     });
 
     if (!response.ok) {

@@ -11,6 +11,7 @@ export interface User {
   picture?: string;
   llmCredits?: number;
   preferredModel?: string;
+  notificationsEnabled?: boolean;
 }
 
 export interface AuthState {

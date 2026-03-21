@@ -72,10 +72,23 @@ export default function UserManagementPage() {
   useLayoutEffect(() => {
     if (openMenuId && buttonRefs.current[openMenuId]) {
       const rect = buttonRefs.current[openMenuId]!.getBoundingClientRect();
-      setMenuPosition({
-        top: rect.top,
-        right: window.innerWidth - rect.left + 12
-      });
+      const menuHeight = 320; // Estimated height for the menu
+      const menuWidth = 224;  // w-56
+      
+      let top = rect.top;
+      let right = window.innerWidth - rect.left + 12;
+
+      // Vertical overflow check: shift up if it would go off-screen
+      if (top + menuHeight > window.innerHeight) {
+        top = Math.max(20, window.innerHeight - menuHeight - 20);
+      }
+
+      // Horizontal overflow check: shift right if it would go off-screen on the left
+      if (window.innerWidth - right - menuWidth < 10) {
+        right = Math.max(10, window.innerWidth - menuWidth - 10);
+      }
+
+      setMenuPosition({ top, right });
     } else {
       setMenuPosition(null);
     }

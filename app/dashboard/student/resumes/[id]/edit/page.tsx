@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { EditorHeader } from "@/components/resume/EditorHeader";
 import { AIDrawer } from "@/components/resume/AIDrawer";
 import { DocumentViewer } from "@/components/resume/DocumentViewer";
+import { useAuth } from "@/context/auth-context";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
@@ -33,6 +34,7 @@ export default function ResumeEditorPage() {
   const { id } = useParams();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user, refreshUser } = useAuth();
   const [resumeName, setResumeName] = useState("");
   const [format, setFormat] = useState<string>("latex");
   const [code, setCode] = useState("");
@@ -284,6 +286,9 @@ export default function ResumeEditorPage() {
           }
         }).catch(err => console.error("Failed to sync score:", err));
       }
+      
+      // Refresh user to update credit count
+      refreshUser();
     } catch (err: any) {
       if (err.response?.status === 402) {
         setAiError("⚠️ Institutional Rate Limit Reached: Your hourly LLM credits have been exhausted. Refills happen every 60 minutes.");
@@ -721,105 +726,35 @@ export default function ResumeEditorPage() {
             </div>
           </>
         ) : (
-          /* PDF/DOCX Insight Dashboard */
-          <>
-            <div className="flex-[3] h-full overflow-y-auto bg-slate-100/50 dark:bg-black/40 p-4 md:p-12 flex justify-center custom-scrollbar border-r border-border/50">
-              <div className="w-full max-w-4xl space-y-8">
-                <div className="flex items-center justify-between px-2">
-                  <div className="space-y-1">
-                    <h3 className="text-[10px] font-black tracking-widest text-primary uppercase">Identity Verification Preview</h3>
-                    <p className="text-sm font-bold text-slate-800 dark:text-white">Original {format.toUpperCase()} Document Vault</p>
-                  </div>
-                  <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20">
-                     Institutional Record
-                  </div>
-                </div>
-                
-                <div className="w-full h-[800px] md:h-[1100px] rounded-3xl overflow-hidden border border-border bg-white dark:bg-slate-900 shadow-2xl">
-                  {pdfUrl ? (
-                    <DocumentViewer url={pdfUrl} format={format} />
-                  ) : (
-                    <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground animate-pulse gap-4">
-                      <Loader2 className="w-8 h-8 animate-spin" />
-                      <span className="text-[10px] font-bold uppercase tracking-widest">Accessing secure asset...</span>
+          /* PDF/DOCX Content - Direct Viewer */
+          <div className="flex-1 p-4 md:p-8 overflow-auto flex justify-center bg-slate-200/20 dark:bg-black/40 h-full relative">
+            {pdfUrl ? (
+              <div className="w-full max-w-4xl h-full flex flex-col space-y-6 py-4 md:py-8">
+                 <div className="flex items-center justify-between px-2 shrink-0">
+                    <div className="space-y-1">
+                      <h3 className="text-[10px] font-black tracking-widest text-primary uppercase">Institutional Preview</h3>
+                      <p className="text-sm font-bold text-slate-800 dark:text-white uppercase tracking-tighter">Original {format} Document</p>
                     </div>
-                  )}
-                </div>
+                    <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[9px] font-black uppercase tracking-widest border border-primary/20">
+                       Verified Vault Record
+                    </div>
+                 </div>
+                 <div className="flex-1 min-h-[800px] md:min-h-0 rounded-[2.5rem] md:rounded-[3rem] overflow-hidden border border-border bg-white dark:bg-slate-900 shadow-2xl shadow-black/10">
+                    <DocumentViewer url={pdfUrl} format={format} />
+                 </div>
               </div>
-            </div>
-
-            <div className="flex-[2] h-full bg-white dark:bg-slate-900 overflow-y-auto custom-scrollbar p-10 space-y-10 shadow-[-20px_0_50px_rgba(0,0,0,0.02)]">
-               <div className="space-y-1">
-                 <h4 className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
-                   <Sparkles size={14} className="animate-pulse" />
-                   Strategic Insight Hub
-                 </h4>
-                 <p className="text-lg font-black text-slate-800 dark:text-white tracking-tight">AI-Powered Synthesis</p>
-               </div>
-
-               {isAnalyzing ? (
-                 <div className="py-20 flex flex-col items-center justify-center space-y-4">
-                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse font-mono">Simulating Review Protocols...</p>
+            ) : (
+              <div className="flex flex-col items-center justify-center text-center space-y-6 opacity-30 my-20">
+                 <div className="w-16 h-16 md:w-24 md:h-24 rounded-full border border-dashed border-primary/50 flex items-center justify-center">
+                    <FileText strokeWidth={0.5} className="text-primary w-8 h-8 md:w-12 md:h-12" />
                  </div>
-               ) : (
-                 <div className="space-y-10">
-                   {/* Score Card */}
-                   {score !== null && (
-                     <motion.div 
-                       initial={{ opacity: 0, scale: 0.95 }}
-                       animate={{ opacity: 1, scale: 1 }}
-                       className="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden group shadow-sm"
-                     >
-                        <div className="relative z-10">
-                           <span className={cn(
-                             "text-6xl font-black tracking-tighter",
-                             score > 80 ? "text-emerald-500" : score > 60 ? "text-amber-500" : "text-rose-500"
-                           )}>
-                             {score}
-                           </span>
-                           <sub className="text-muted-foreground text-sm font-bold ml-1">/100</sub>
-                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-3">Readiness Index</p>
-                        </div>
-                     </motion.div>
-                   )}
-
-                   {/* Extraction Preview */}
-                   {extractedText && (
-                      <div className="space-y-3">
-                         <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Raw Context Data</h5>
-                         <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-mono line-clamp-6 opacity-70 italic shadow-inner">
-                            {extractedText}
-                         </div>
-                      </div>
-                   )}
-
-                   {/* Metrics */}
-                   <div className="grid grid-cols-1 gap-4">
-                      {impactFeedback && (
-                        <div className="p-6 rounded-3xl bg-emerald-50/30 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 space-y-4">
-                          <h5 className="flex items-center gap-2 text-[10px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">
-                             <CheckCircle size={14} />
-                             Leadership Impact
-                          </h5>
-                          <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-none">
-                             <ReactMarkdown 
-                               remarkPlugins={[remarkGfm, remarkBreaks]}
-                               components={{
-                                 strong: ({ children }) => <strong className="font-semibold text-slate-900 dark:text-slate-100">{children}</strong>,
-                                 p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
-                               }}
-                             >
-                               {impactFeedback.replace(/(\*\*[^*]+\*\*)([a-zA-Z])/g, '$1\n\n$2')}
-                             </ReactMarkdown>
-                          </div>
-                        </div>
-                      )}
-                   </div>
+                 <div className="space-y-2">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Awaiting Asset</p>
+                    <p className="text-[10px] font-light text-muted-foreground">The institutional {format.toUpperCase()} record <br /> is being prepared for preview</p>
                  </div>
-               )}
-            </div>
-          </>
+              </div>
+            )}
+          </div>
         )}
       </main>
 
@@ -833,7 +768,8 @@ export default function ResumeEditorPage() {
         isLoading={isAnalyzing}
         error={aiError}
         onRetry={handleAnalyze}
-        resumeContent={code || extractedText}
+        resumeContent={format === 'latex' ? code : extractedText}
+        format={format}
       />
       <ConfirmationDialog 
         isOpen={confirmConfig.isOpen}

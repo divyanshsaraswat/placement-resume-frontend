@@ -30,15 +30,14 @@ import { adminApi, llmApi } from "@/lib/api";
 export default function SettingsPage() {
   const { user, refreshUser } = useAuth();
   const { theme, setTheme, resolvedTheme } = useTheme();
-  const [isSaving, setIsSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
-  
   const [profile, setProfile] = useState({
     name: user?.name || "",
     department: user?.department || "Computer Science",
   });
-
-  const [notifications, setNotifications] = useState(true);
+  const [notifications, setNotifications] = useState(user?.notificationsEnabled ?? true);
+  const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "error">("idle");
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   const [institutional, setInstitutional] = useState({
     aiProvider: "groq",
@@ -62,6 +61,7 @@ export default function SettingsPage() {
         department: user.department || "Computer Science"
       });
       setSelectedModel(user.preferredModel || "");
+      setNotifications(user.notificationsEnabled ?? true);
     }
     
     const fetchLlmInfo = async () => {
@@ -78,24 +78,37 @@ export default function SettingsPage() {
     fetchLlmInfo();
   }, [user]);
 
-  const handleSave = async () => {
+  const performSync = async (updates: any) => {
     if (!user?.id) return;
     
-    setIsSaving(true);
+    setSyncStatus("syncing");
     try {
-      await adminApi.updateUser(user.id, {
-        department: profile.department,
-        preferred_model: selectedModel
-      });
-      
+      await adminApi.updateUser(user.id, updates);
       await refreshUser();
-      toast.success("Profile synchronized with institutional records");
+      setSyncStatus("synced");
+      setLastSyncTime(new Date());
+      // Clear synced status after a few seconds
+      setTimeout(() => setSyncStatus("idle"), 3000);
     } catch (err) {
+      setSyncStatus("error");
       toast.error("Cloud synchronization failed. Please check connectivity.");
       console.error(err);
-    } finally {
-      setIsSaving(false);
     }
+  };
+
+  // Sync on model change
+  useEffect(() => {
+    if (!mounted || !user) return;
+    if (selectedModel !== (user.preferredModel || "")) {
+      performSync({ preferred_model: selectedModel });
+    }
+  }, [selectedModel]);
+
+  // Sync on notifications change
+  const handleToggleNotifications = async () => {
+    const newVal = !notifications;
+    setNotifications(newVal);
+    await performSync({ notifications_enabled: newVal });
   };
 
   const containerVariants: Variants = {
@@ -126,11 +139,32 @@ export default function SettingsPage() {
       className="max-w-4xl mx-auto space-y-12 pb-20"
     >
       {/* Header Area */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Settings</h1>
-        <p className="text-slate-500 dark:text-slate-400 font-light">
-          Manage your account preferences and institutional configurations.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Settings</h1>
+          <p className="text-slate-500 dark:text-slate-400 font-light">
+            Manage your account preferences and institutional configurations.
+          </p>
+        </div>
+
+        <div className="shrink-0 flex items-center gap-3 px-4 py-2.5 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 shadow-sm transition-all hover:shadow-md">
+           <div className={cn(
+             "w-2 h-2 rounded-full",
+             syncStatus === "syncing" ? "bg-amber-500 animate-pulse" :
+             syncStatus === "synced" ? "bg-emerald-500" :
+             syncStatus === "error" ? "bg-rose-500" : "bg-slate-300 dark:bg-slate-600"
+           )} />
+           <div className="flex flex-col">
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 block leading-none mb-1">Cloud Sync Status</span>
+              <span className="text-[11px] font-bold text-slate-800 dark:text-slate-200 block leading-none">
+                {syncStatus === "syncing" ? "Syncing..." :
+                 syncStatus === "synced" ? "Saved to Cloud" :
+                 syncStatus === "error" ? "Sync Error" : 
+                 lastSyncTime ? `Last saved ${lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : "Waiting for changes"}
+              </span>
+           </div>
+           {syncStatus === "syncing" && <Loader2 size={12} className="animate-spin text-slate-400" />}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -139,7 +173,7 @@ export default function SettingsPage() {
           <div className="space-y-1">
             <h3 className="text-sm font-bold uppercase tracking-widest text-primary/80">Account Control</h3>
             <p className="text-xs text-slate-400 leading-relaxed font-light">
-              Your identity is managed via Institutional SSO. Some fields are controlled by MNIT ERP.
+              Your identity is managed via Institutional SSO. 
             </p>
           </div>
           
@@ -214,7 +248,7 @@ export default function SettingsPage() {
             </div>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-3">
+                <div className="space-y-12">
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 pl-1">Display Appearance</label>
                   <div className="flex p-1 bg-slate-50 dark:bg-slate-900/80 rounded-2xl border border-slate-100 dark:border-slate-800 h-[64px]">
                      <button 
@@ -247,10 +281,10 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3">
+                 <div className="space-y-12">
                   <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 pl-1">Institutional Alerts</label>
                   <button 
-                     onClick={() => setNotifications(!notifications)}
+                     onClick={handleToggleNotifications}
                      className={cn(
                        "w-full flex items-center justify-between px-5 rounded-2xl border transition-all h-[64px] group",
                        notifications 
@@ -358,37 +392,7 @@ export default function SettingsPage() {
           </motion.section>
 
 
-          {/* Action Footer */}
-          <motion.div variants={itemVariants} className="pt-8 flex items-center justify-end">
-             <button 
-               onClick={handleSave}
-               disabled={isSaving}
-               className="flex items-center gap-3 px-8 py-4 rounded-[1.5rem] bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50 shadow-xl shadow-black/10 group"
-             >
-                <AnimatePresence mode="wait">
-                  {isSaving ? (
-                    <motion.div 
-                      key="saving"
-                      initial={{ opacity: 0, rotate: -180 }}
-                      animate={{ opacity: 1, rotate: 0 }}
-                      exit={{ opacity: 0, rotate: 180 }}
-                    >
-                      <Loader2 size={18} className="animate-spin" />
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key="save"
-                      initial={{ opacity: 0, scale: 0.5 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.5 }}
-                    >
-                      <Save size={18} />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-                <span className="text-sm">Save All Changes</span>
-             </button>
-          </motion.div>
+
 
         </div>
       </div>

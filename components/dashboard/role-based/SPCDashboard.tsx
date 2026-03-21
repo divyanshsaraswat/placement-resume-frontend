@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { Users, GraduationCap, Briefcase, TrendingUp, Search, Loader2 } from "lucide-react";
+import { Users, GraduationCap, TrendingUp, Search, Loader2 } from "lucide-react";
 import { DashboardStats } from "../DashboardStats";
 import { DonutChart, BarChart, LineChart } from "../DashboardCharts";
 import { adminApi } from "@/lib/api";
@@ -50,12 +50,6 @@ export function SPCDashboard() {
       title: "Total Students",
       value: data?.total_students || 0,
       icon: Users,
-    },
-    {
-      title: "Active Drives",
-      value: 12, // Draft for now
-      icon: Briefcase,
-      description: "Upcoming companies"
     },
     {
       title: "Validation Rate",

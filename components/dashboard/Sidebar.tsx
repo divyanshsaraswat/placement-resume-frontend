@@ -51,9 +51,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         )}
       >
       {/* Sidebar Header */}
-      <div className="p-8 flex items-center justify-between">
-        <div className="flex items-center gap-3 text-primary">
-          <div className="bg-primary/10 p-2 rounded-xl">
+      <div className={cn("flex items-center justify-between", isCollapsed ? "p-6" : "p-8")}>
+        <div className={cn("flex items-center gap-3 text-primary w-full", isCollapsed && "justify-center")}>
+          <div className="bg-primary/10 p-2 rounded-xl shrink-0">
             <Sparkles size={20} strokeWidth={1} />
           </div>
           {!isCollapsed && (
@@ -87,7 +87,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Link key={item.href} href={item.href} title={item.title} onClick={onClose}>
               <div 
                 className={cn(
-                  "flex items-center gap-4 px-4 py-3 rounded-2xl transition-all group relative",
+                  "flex items-center rounded-2xl transition-all group relative",
+                  isCollapsed ? "justify-center h-12 w-12 mx-auto" : "gap-4 px-4 py-3",
                   isActive 
                     ? "bg-slate-50 dark:bg-slate-900 text-primary font-medium" 
                     : "text-slate-400 hover:text-foreground hover:bg-slate-50/50 dark:hover:bg-slate-900/50"

@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/context/auth-context";
-import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2, FileCode, FilePenLine, Trash2, Trash, Send, Download, CheckCircle, Upload, Sparkles, MessageSquare, User, Calendar, X } from "lucide-react";
+import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2, FileCode, FilePenLine, Trash2, Trash, Send, Download, CheckCircle, Upload, Sparkles, MessageSquare, User, Calendar, X, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { resumeApi } from "@/lib/api";
@@ -163,6 +163,18 @@ export default function StudentResumesPage() {
     });
   };
 
+  const handleSetDefault = async (id: string) => {
+    setOpenMenuId(null);
+    toast.promise(resumeApi.setDefaultResume(id), {
+      loading: 'Updating primary document...',
+      success: () => {
+        fetchResumes();
+        return 'Document successfully set as primary representation';
+      },
+      error: (err: any) => err?.response?.data?.detail || 'Failed to update primary status',
+    });
+  };
+
   const handleAddVersion = async (resumeId: string, type: string, latexCode: string, format: string, file?: File) => {
     try {
       await resumeApi.addVersion(resumeId, type, latexCode, format, file);
@@ -180,10 +192,15 @@ export default function StudentResumesPage() {
       versionIndex: index + 1,
       totalVersions: resume.versions.length,
       reviewHistory: resume.review_history || [],
+      isDefault: resume.is_default,
       // We'll use this for the unique key
       key: `${resume.id || resume._id}-${version.version_id || index}`
     }))
-  ).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  ).sort((a, b) => {
+    if (a.isDefault && !b.isDefault) return -1;
+    if (!a.isDefault && b.isDefault) return 1;
+    return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+  });
 
   const filteredCards = allVersionCards.filter(card => {
     const matchesSearch = (card.type || "Technical Resume")
@@ -317,15 +334,23 @@ export default function StudentResumesPage() {
                     "absolute bottom-0 left-0 right-0 h-[2px] group-hover:h-1.5 transition-all duration-300",
                     formatTheme.color.replace('text-', 'bg-')
                   )} />
-                  <div className="flex justify-between items-start">
-                    <div className={cn("transition-colors flex items-start gap-3", formatTheme.color)}>
-                      <FormatIcon size={24} strokeWidth={1.5} className="mt-1" />
-                      <div className="flex flex-col">
-                         <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Format</span>
+                  <div className="flex justify-between items-center">
+                    <div className={cn("transition-colors flex items-center gap-2.5", formatTheme.color)}>
+                      <FormatIcon size={18} strokeWidth={2.5} />
+                      <div className="flex items-center gap-2">
                          <span className={cn("text-xs font-black uppercase tracking-widest", formatTheme.color)}>{version.format || "LATEX"}</span>
+                         {version.isDefault && (
+                          <motion.div 
+                            whileHover={{ scale: 1.2 }}
+                            title="Primary Document"
+                            className="text-primary transition-all cursor-help"
+                          >
+                            <Star size={11} fill="currentColor" strokeWidth={0} />
+                          </motion.div>
+                        )}
                       </div>
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-3">
                       <button 
                         onClick={(e) => {
                           e.stopPropagation();
@@ -335,7 +360,7 @@ export default function StudentResumesPage() {
                           }
                         }}
                         className={cn(
-                          "px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border transition-all",
+                          "px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border shadow-sm transition-all whitespace-nowrap",
                           statusColors[version.status as string] || statusColors.draft,
                           (version.status === 'approved' || version.status === 'rejected') && "hover:opacity-80 cursor-pointer"
                         )}>
@@ -369,10 +394,10 @@ export default function StudentResumesPage() {
                   </div>
                 </div>
                 <div className="px-2 flex justify-between items-center text-[11px]">
-                   <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-light">
-                      <Sparkles size={10} className="text-primary/40" />
-                      <span>Institutional Score: <span className="font-bold text-slate-700 dark:text-slate-200">{version.ai_score?.total || "--"}</span></span>
-                   </div>
+                    <div className="flex items-center gap-1.5 text-slate-400 dark:text-slate-500 font-medium">
+                       <Sparkles size={10} />
+                       <span>AI SCORE <span className="font-bold text-slate-700 dark:text-slate-200 ml-0.5">{version.ai_score?.total || "--"}</span></span>
+                    </div>
                    <span className="text-primary/70 dark:text-slate-300 group-hover:text-primary transition-colors font-bold uppercase tracking-widest text-[9px]">
                      {formatTheme.action}
                    </span>
@@ -430,6 +455,16 @@ export default function StudentResumesPage() {
                           >
                             <Send size={14} />
                             <span>Submit Review</span>
+                          </button>
+                        )}
+
+                        {!version.isDefault && (
+                          <button
+                            onClick={() => handleSetDefault(resumeId)}
+                            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-primary hover:bg-primary/10 transition-colors"
+                          >
+                            <Star size={14} />
+                            <span>Set as Primary</span>
                           </button>
                         )}
 
