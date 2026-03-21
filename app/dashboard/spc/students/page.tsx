@@ -19,6 +19,7 @@ const DEPARTMENTS = [
 ];
 
 export default function SPCStudentsPage() {
+  const [analytics, setAnalytics] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -34,12 +35,16 @@ export default function SPCStudentsPage() {
   const fetchStudents = useCallback(async (signal?: AbortSignal) => {
     try {
       setIsLoading(true);
-      const data = await adminApi.getStudents({
-        search: debouncedSearch,
-        year: filters.years.length > 0 ? filters.years : undefined,
-        department: filters.departments.length > 0 ? filters.departments : undefined
-      }, signal);
-      setStudents(data);
+      const [studentsData, analyticsData] = await Promise.all([
+        adminApi.getStudents({
+          search: debouncedSearch,
+          year: filters.years.length > 0 ? filters.years : undefined,
+          department: filters.departments.length > 0 ? filters.departments : undefined
+        }, signal),
+        adminApi.getStudentAnalytics(signal)
+      ]);
+      setStudents(studentsData);
+      setAnalytics(analyticsData);
     } catch (err: any) {
       if (err.name === 'CanceledError' || err.name === 'AbortError') return;
       console.error(err);
@@ -65,6 +70,13 @@ export default function SPCStudentsPage() {
     not_created: "text-slate-400 bg-slate-400/5",
   };
 
+  const statCards = [
+    { label: "Total Students", value: analytics?.total_students?.toString() || "0", icon: Users, color: "text-primary" },
+    { label: "Validated", value: analytics?.status_distribution?.approved?.toString() || "0", icon: CheckCircle, color: "text-emerald-500" },
+    { label: "Pending", value: analytics?.status_distribution?.submitted?.toString() || "0", icon: Clock, color: "text-amber-500" },
+    { label: "Not Started", value: analytics?.status_distribution?.not_created?.toString() || "0", icon: XCircle, color: "text-slate-400" },
+  ];
+
   return (
     <div className="max-w-7xl mx-auto space-y-10 py-8">
       {/* Page Header */}
@@ -75,12 +87,7 @@ export default function SPCStudentsPage() {
 
       {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {[
-          { label: "Total Students", value: students.length.toString(), icon: Users, color: "text-primary" },
-          { label: "Validated", value: "156", icon: CheckCircle, color: "text-emerald-500" },
-          { label: "Pending", value: "42", icon: Clock, color: "text-amber-500" },
-          { label: "Not Started", value: "50", icon: XCircle, color: "text-slate-400" },
-        ].map((stat, i) => (
+        {statCards.map((stat, i) => (
           <div key={i} className="nm-flat p-6 rounded-3xl flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">{stat.label}</p>
@@ -307,7 +314,7 @@ export default function SPCStudentsPage() {
                     </td>
                     <td className="px-6 py-5 text-center">
                       <span className="text-lg font-display font-medium text-primary">
-                        {student.resumeScore > 0 ? `${student.resumeScore}%` : '-'}
+                        {student.score > 0 ? `${student.score}%` : '-'}
                       </span>
                     </td>
                     <td className="px-6 py-5 text-sm">

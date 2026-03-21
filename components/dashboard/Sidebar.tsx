@@ -108,9 +108,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           );
         })}
       </nav>
-
       {/* Footer Toggle - Strictly desktop only (2xl+) */}
-      <div className="p-6 mt-auto hidden 2xl:block">
+      <div className="p-6 hidden 2xl:block">
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="w-full h-11 rounded-2xl bg-slate-100/50 dark:bg-slate-900/50 transition-all hover:bg-primary/10 hover:text-primary flex items-center justify-center text-slate-400 dark:text-slate-500 group border border-transparent hover:border-primary/20"

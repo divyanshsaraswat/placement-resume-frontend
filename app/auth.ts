@@ -12,8 +12,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     async signIn({ user, account }) {
       if (account?.provider === "google" && account.id_token) {
         try {
-          const response = await fetch(`${process.env.API_ENDPOINT || "http://localhost:8000"}/api/v1/auth/login/google?token=${account.id_token}`, {
+          const response = await fetch(`${process.env.API_ENDPOINT || "http://localhost:8000"}/api/v1/auth/login/google`, {
             method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ token: account.id_token }),
           });
 
           if (!response.ok) {

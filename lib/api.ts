@@ -4,9 +4,6 @@ const API_BASE_URL = "/api/v1";
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    "Content-Type": "application/json",
-  },
   timeout: 120000, // 120 seconds
 });
 
@@ -78,7 +75,9 @@ export const resumeApi = {
       formData.append("file", file);
     }
     const response = await api.post("/resumes", formData, { 
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: {
+        "Content-Type": "multipart/form-data" // Axios in recent versions handles this correctly with FormData
+      },
       signal 
     });
     return response.data;
@@ -92,7 +91,9 @@ export const resumeApi = {
       formData.append("file", file);
     }
     const response = await api.post(`/resumes/${resumeId}/version`, formData, { 
-      headers: { "Content-Type": "multipart/form-data" },
+      headers: {
+        "Content-Type": "multipart/form-data"
+      },
       signal 
     });
     return response.data;
@@ -103,6 +104,10 @@ export const resumeApi = {
   },
   deleteResume: async (id: string, signal?: AbortSignal) => {
     const response = await api.delete(`/resumes/${id}`, { signal });
+    return response.data;
+  },
+  deleteVersion: async (resumeId: string, versionId: string, signal?: AbortSignal) => {
+    const response = await api.delete(`/resumes/${resumeId}/versions/${versionId}`, { signal });
     return response.data;
   },
   submitResume: async (id: string, signal?: AbortSignal) => {
@@ -120,6 +125,11 @@ export const resumeApi = {
     const response = await api.post("/latex/compile", { latex_code: latex }, { signal });
     return response.data.pdf_url;
   },
+  cleanupLatexJob: async (jobId: string, signal?: AbortSignal) => {
+    const response = await api.delete(`/latex/${jobId}`, { signal });
+    return response.data;
+  },
+
   getStats: async (signal?: AbortSignal) => {
     const response = await api.get("/resumes/stats", { signal });
     return response.data;
@@ -184,6 +194,10 @@ export const resumeApi = {
     }
 
     const response = await api.get("/resumes/validation-queue", { params: searchParams, signal });
+    return response.data;
+  },
+  getValidationStats: async (signal?: AbortSignal) => {
+    const response = await api.get("/resumes/validation-stats", { signal });
     return response.data;
   },
 };
@@ -258,6 +272,25 @@ export const adminApi = {
     if (params.search) searchParams.append("search", params.search);
     if (params.log_type) searchParams.append("log_type", params.log_type);
     return `${api.defaults.baseURL}/logs/export?${searchParams.toString()}`;
+  },
+};
+
+export const notificationApi = {
+  getNotifications: async (limit: number = 20, signal?: AbortSignal) => {
+    const response = await api.get("/notifications", { params: { limit }, signal });
+    return response.data;
+  },
+  getUnreadCount: async (signal?: AbortSignal) => {
+    const response = await api.get("/notifications/unread-count", { signal });
+    return response.data;
+  },
+  markAsRead: async (id: string) => {
+    const response = await api.put(`/notifications/${id}/read`);
+    return response.data;
+  },
+  markAllAsRead: async () => {
+    const response = await api.put("/notifications/mark-all-read");
+    return response.data;
   },
 };
 

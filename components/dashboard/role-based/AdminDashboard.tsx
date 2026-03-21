@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { ShieldCheck, UserPlus, Database, Activity, History, Loader2 } from "lucide-react";
+import { ShieldCheck, UserPlus, Database, Activity, History, Loader2, AlertTriangle } from "lucide-react";
 import { DashboardStats } from "../DashboardStats";
 import { DonutChart, LineChart } from "../DashboardCharts";
 import Link from "next/link";
@@ -49,7 +49,8 @@ export function AdminDashboard() {
     UserPlus,
     Database,
     Activity,
-    History
+    History,
+    AlertTriangle
   };
 
   const stats = data?.stats?.map((s: any) => ({

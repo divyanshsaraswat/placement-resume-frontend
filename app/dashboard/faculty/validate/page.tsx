@@ -24,6 +24,12 @@ export default function FacultyValidatePage() {
   const basePath = pathname.startsWith('/dashboard/spc') ? '/dashboard/spc/validate' : '/dashboard/faculty/validate';
   const [resumes, setResumes] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [stats, setStats] = useState({
+    pending: 0,
+    approvedToday: 0,
+    avgScore: "0%",
+    flagged: 0
+  });
   const [search, setSearch] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"year" | "branch">("year");
@@ -34,6 +40,16 @@ export default function FacultyValidatePage() {
   });
 
   const debouncedSearch = useDebounce(search, 500);
+
+  const fetchStats = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const data = await resumeApi.getValidationStats(signal);
+      setStats(data);
+    } catch (err: any) {
+      if (err.name === 'CanceledError' || err.name === 'AbortError') return;
+      console.error("Failed to fetch validation stats:", err);
+    }
+  }, []);
 
   const fetchQueue = useCallback(async (signal?: AbortSignal) => {
     try {
@@ -56,9 +72,10 @@ export default function FacultyValidatePage() {
 
   useEffect(() => {
     const controller = new AbortController();
+    fetchStats(controller.signal);
     fetchQueue(controller.signal);
     return () => controller.abort();
-  }, [fetchQueue]);
+  }, [fetchQueue, fetchStats]);
 
   const activeFiltersCount = filters.years.length + filters.departments.length + (filters.group ? 1 : 0);
 
@@ -77,13 +94,13 @@ export default function FacultyValidatePage() {
         <p className="text-slate-500 dark:text-slate-400 font-light text-lg">Review and approve student resumes for the placement season.</p>
       </div>
 
-      {/* Stats Overview (Static for now) */}
+      {/* Stats Overview */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: "Pending", value: resumes.length.toString(), icon: Clock, color: "text-amber-500" },
-          { label: "Approved Today", value: "45", icon: CheckCircle, color: "text-emerald-500" },
-          { label: "Avg. Score", value: "78%", icon: ArrowRight, color: "text-primary" },
-          { label: "Flagged", value: "3", icon: XCircle, color: "text-rose-500" },
+          { label: "Pending", value: stats.pending.toString(), icon: Clock, color: "text-amber-500" },
+          { label: "Approved Today", value: stats.approvedToday.toString(), icon: CheckCircle, color: "text-emerald-500" },
+          { label: "Avg. Score", value: stats.avgScore, icon: ArrowRight, color: "text-primary" },
+          { label: "Flagged", value: stats.flagged.toString(), icon: XCircle, color: "text-rose-500" },
         ].map((stat, i) => (
           <div key={i} className="nm-flat p-6 rounded-3xl flex items-center justify-between">
             <div className="space-y-1">
@@ -105,7 +122,7 @@ export default function FacultyValidatePage() {
             <input 
               type="text" 
               placeholder="Search students, departments..." 
-              className="bg-transparent border-none outline-none w-full text-sm placeholder:text-slate-400 dark:placeholder:text-slate-600"
+              className="bg-transparent border-0 border-b border-slate-200 dark:border-slate-800 focus:border-primary outline-none w-full text-sm font-medium transition-all rounded-none placeholder:text-slate-400 dark:placeholder:text-slate-600"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />

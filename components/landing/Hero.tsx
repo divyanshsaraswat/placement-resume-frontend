@@ -100,14 +100,31 @@ export function Hero() {
         </motion.div>
       </div>
 
-      {/* Institutional Banner */}
-      <div className="mt-32 w-full max-w-4xl mx-auto px-6">
-         <div className="flex flex-wrap justify-center sm:justify-between items-center gap-x-12 gap-y-8 opacity-60 text-[10px] uppercase tracking-[0.4em] font-medium text-slate-500 dark:text-slate-400">
-            <div className="flex items-center gap-2"><GraduationCap size={16} strokeWidth={1} /> MNIT JAIPUR</div>
-            <div className="flex items-center gap-2"><Shield size={16} strokeWidth={1} /> PLACEMENT CELL</div>
-            <div className="flex items-center gap-2"><FileText size={16} strokeWidth={1} /> CAREER SERVICES</div>
-         </div>
-      </div>
+          {/* Institutional Branding */}
+          <motion.div 
+            variants={itemVariants} 
+            className="flex flex-col sm:flex-row items-center justify-center gap-12 sm:gap-20 pt-12 opacity-25 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700 pb-20"
+          >
+            <div className="flex flex-col items-center gap-4 group/logo cursor-default">
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-900/50 flex items-center justify-center text-slate-400 group-hover/logo:text-primary transition-colors border border-transparent group-hover/logo:border-primary/20">
+                <GraduationCap size={32} strokeWidth={1} />
+              </div>
+              <div className="flex flex-col items-center gap-1 text-center">
+                <span className="text-xs uppercase tracking-[0.3em] font-bold text-slate-500">MNIT Jaipur</span>
+                <span className="text-[9px] uppercase tracking-[0.2em] text-slate-400/50 font-medium">Institution</span>
+              </div>
+            </div>
+
+            <div className="flex flex-col items-center gap-4 group/logo cursor-default">
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-900/50 flex items-center justify-center text-slate-400 group-hover/logo:text-primary transition-colors border border-transparent group-hover/logo:border-primary/20">
+                <Shield size={32} strokeWidth={1} />
+              </div>
+              <div className="flex flex-col items-center gap-1 text-center">
+                <span className="text-xs uppercase tracking-[0.3em] font-bold text-slate-500">Placement Cell</span>
+                <span className="text-[9px] uppercase tracking-[0.2em] text-slate-400/50 font-medium">Official Partner</span>
+              </div>
+            </div>
+          </motion.div>
     </section>
   );
 }

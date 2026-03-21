@@ -63,7 +63,13 @@ export function StatCard({ title, value, icon: Icon, description, trend, index }
 
 export function DashboardStats({ stats }: { stats: Omit<StatCardProps, "index">[] }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className={cn(
+      "grid grid-cols-1 md:grid-cols-2 gap-6",
+      stats.length === 1 ? "lg:grid-cols-1" : 
+      stats.length === 2 ? "lg:grid-cols-2" : 
+      stats.length === 3 ? "lg:grid-cols-3" : 
+      "lg:grid-cols-4"
+    )}>
       {stats.map((stat, i) => (
         <StatCard key={stat.title} {...stat} index={i} />
       ))}

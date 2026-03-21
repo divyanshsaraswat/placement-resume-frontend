@@ -8,7 +8,8 @@ import {
   Play,
   Sparkles,
   CheckCircle,
-  FileCode
+  FileCode,
+  ChevronRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useRouter } from "next/navigation";
@@ -18,12 +19,17 @@ import { cn } from "@/lib/utils";
 import { EditorHeader } from "@/components/resume/EditorHeader";
 import { AIDrawer } from "@/components/resume/AIDrawer";
 import { DocumentViewer } from "@/components/resume/DocumentViewer";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 
 export default function ResumeEditorPage() {
   const { id } = useParams();
+  const router = useRouter();
   const [resumeName, setResumeName] = useState("");
   const [format, setFormat] = useState<string>("latex");
   const [code, setCode] = useState("");
+  const [extractedText, setExtractedText] = useState("");
   const [isCompiling, setIsCompiling] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -34,6 +40,8 @@ export default function ResumeEditorPage() {
   const [score, setScore] = useState<number | null>(null);
   const [impactFeedback, setImpactFeedback] = useState<string | null>(null);
   const [atsFeedback, setAtsFeedback] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [lastSavedCode, setLastSavedCode] = useState("");
 
   const [leftWidth, setLeftWidth] = useState(60); // percentage
   const [isResizing, setIsResizing] = useState(false);
@@ -47,6 +55,7 @@ export default function ResumeEditorPage() {
       if (latestVersion) {
           setFormat(latestVersion.format || "latex");
           setCode(latestVersion.latex_code || "");
+          setExtractedText(latestVersion.parsed_data?.extracted_text || "");
           
           if ((latestVersion.format === 'pdf' || latestVersion.format === 'docx') && latestVersion.file_url) {
             const finalUrl = latestVersion.file_url.startsWith('/') 
@@ -61,6 +70,8 @@ export default function ResumeEditorPage() {
             setAtsFeedback(latestVersion.ai_score.ats);
             setSuggestions(latestVersion.ai_score.suggestions || []);
           }
+          setLastSavedCode(latestVersion.latex_code || "");
+          setHasUnsavedChanges(false);
       }
     } catch (err) {
       console.error(err);
@@ -122,7 +133,9 @@ export default function ResumeEditorPage() {
     try {
       setIsSaving(true);
       await resumeApi.saveResume(id as string, { content: code });
-      toast.success("Changes multi-synced to cloud");
+      toast.success("Changes synced to cloud vault");
+      setLastSavedCode(code);
+      setHasUnsavedChanges(false);
     } catch (err) {
       toast.error("Cloud synchronization failed");
     } finally {
@@ -130,9 +143,75 @@ export default function ResumeEditorPage() {
     }
   };
 
+  // Track unsaved changes
+  useEffect(() => {
+    if (code !== lastSavedCode) {
+      setHasUnsavedChanges(true);
+    } else {
+      setHasUnsavedChanges(false);
+    }
+  }, [code, lastSavedCode]);
+
+  // Navigation guard for browser-level (refresh, close tab)
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  const handleBack = async () => {
+    if (hasUnsavedChanges) {
+      if (confirm("You have unsaved changes. Save them before leaving?")) {
+        try {
+          setIsSaving(true);
+          await resumeApi.saveResume(id as string, { content: code });
+          toast.success("Changes saved!");
+          setHasUnsavedChanges(false);
+          router.push("/dashboard/student/resumes");
+        } catch (err) {
+          toast.error("Failed to save changes. Please try again.");
+        } finally {
+          setIsSaving(false);
+        }
+      } else if (confirm("Discard changes and leave?")) {
+        router.push("/dashboard/student/resumes");
+      }
+    } else {
+      router.push("/dashboard/student/resumes");
+    }
+  };
+
+  // Utility to extract job ID from a pdfUrl like '/public/temp_latex/job-id-here/resume.pdf'
+  const extractJobId = (url: string | null) => {
+    if (!url) return null;
+    const match = url.match(/\/temp_latex\/([^\/]+)\//);
+    return match ? match[1] : null;
+  };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      const jobId = extractJobId(pdfUrl);
+      if (jobId) {
+        resumeApi.cleanupLatexJob(jobId).catch(console.error);
+      }
+    };
+  }, [pdfUrl]);
+
   const handleCompile = async () => {
     try {
       setIsCompiling(true);
+      // Cleanup previous job to conserve server space before generating new one
+      const oldJobId = extractJobId(pdfUrl);
+      if (oldJobId) {
+         resumeApi.cleanupLatexJob(oldJobId).catch(console.error);
+      }
+      
       const url = await resumeApi.compilePdf(code);
       setPdfUrl(url);
     } catch (err) {
@@ -211,6 +290,99 @@ export default function ResumeEditorPage() {
       },
     });
 
+    // register completion provider
+    monaco.languages.registerCompletionItemProvider('latex', {
+      triggerCharacters: ['\\'],
+      provideCompletionItems: (model: any, position: any) => {
+        const word = model.getWordUntilPosition(position);
+        const range = {
+          startLineNumber: position.lineNumber,
+          endLineNumber: position.lineNumber,
+          startColumn: word.startColumn,
+          endColumn: word.endColumn
+        };
+
+        const suggestions = [
+          // Common LaTeX Environments
+          {
+            label: 'itemize',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: [
+              '\\begin{itemize}',
+              '\t\\item ${1:Item content}',
+              '\t\\item ${2:Item content}',
+              '\\end{itemize}'
+            ].join('\n'),
+            insertTextRules: monaco.languages.CompletionItemInsertValueRule.InsertAsSnippet,
+            documentation: 'Itemized list environment',
+            range: range
+          },
+          {
+            label: 'enumerate',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: [
+              '\\begin{enumerate}',
+              '\t\\item ${1:First item}',
+              '\t\\item ${2:Second item}',
+              '\\end{enumerate}'
+            ].join('\n'),
+            insertTextRules: monaco.languages.CompletionItemInsertValueRule.InsertAsSnippet,
+            documentation: 'Numbered list environment',
+            range: range
+          },
+          {
+            label: 'center',
+            kind: monaco.languages.CompletionItemKind.Snippet,
+            insertText: [
+              '\\begin{center}',
+              '\t$0',
+              '\\end{center}'
+            ].join('\n'),
+            insertTextRules: monaco.languages.CompletionItemInsertValueRule.InsertAsSnippet,
+            documentation: 'Centered text block',
+            range: range
+          },
+          // Common Commands
+          ...['section', 'subsection', 'subsubsection', 'textbf', 'textit', 'underline', 'item', 'label', 'ref', 'cite', 'url', 'href', 'title', 'author', 'date', 'maketitle', 'tableofcontents', 'documentclass', 'usepackage'].map(cmd => ({
+            label: cmd,
+            kind: monaco.languages.CompletionItemKind.Keyword,
+            insertText: cmd,
+            documentation: `LaTeX command: \\${cmd}`,
+            range: range
+          }))
+        ];
+
+        return { suggestions };
+      }
+    });
+
+    // Provide word-based suggestions too
+    monaco.languages.setLanguageConfiguration('latex', {
+      wordPattern: /(-?\d*\.\d\w*)|([^\`\\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g,
+      comments: {
+        lineComment: '%'
+      },
+      brackets: [
+        ['{', '}'],
+        ['[', ']'],
+        ['(', ')']
+      ],
+      autoClosingPairs: [
+        { open: '{', close: '}' },
+        { open: '[', close: ']' },
+        { open: '(', close: ')' },
+        { open: '"', close: '"' },
+        { open: "'", close: "'" }
+      ],
+      surroundingPairs: [
+        { open: '{', close: '}' },
+        { open: '[', close: ']' },
+        { open: '(', close: ')' },
+        { open: '"', close: '"' },
+        { open: "'", close: "'" }
+      ]
+    });
+    
     monaco.editor.defineTheme('institutional-dark', {
       base: 'vs-dark',
       inherit: true,
@@ -238,9 +410,10 @@ export default function ResumeEditorPage() {
     <div className="h-full flex flex-col overflow-hidden relative bg-background">
       <EditorHeader 
         isSaving={isSaving}
+        hasUnsavedChanges={hasUnsavedChanges}
         onSave={handleSave}
+        onBack={handleBack}
         onAIOpen={handleAnalyze}
-        onReload={handleReload}
         onDownload={handleDownload}
         title={resumeName || (format === 'latex' ? "Institutional Technical Resume" : `${format.toUpperCase()} Document Review`)}
       />
@@ -270,7 +443,7 @@ export default function ResumeEditorPage() {
       )}
 
       <main className={cn(
-        "flex-1 flex flex-col md:flex-row min-h-0 bg-slate-50/30 dark:bg-black/20",
+        "flex-1 flex flex-col md:flex-row min-h-0 bg-background",
         format === 'latex' && isResizing && "select-none"
       )}>
         {format === 'latex' ? (
@@ -329,49 +502,41 @@ export default function ResumeEditorPage() {
                <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 left-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <div className="bg-slate-900 border border-border p-1 rounded-full flex flex-col gap-1 shadow-xl shadow-black/20">
                      <div className="flex gap-1 px-1 py-1">
-                        <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px] text-white">
-                          ←
-                        </div>
-                        <div className="w-4 h-4 rounded-full bg-slate-800 flex items-center justify-center text-[10px] text-white">
-                          →
-                        </div>
-                     </div>
-                     <div className="flex flex-col gap-0.5 items-center pb-1">
-                        <div className="w-0.5 h-0.5 rounded-full bg-slate-600" />
-                        <div className="w-0.5 h-0.5 rounded-full bg-slate-600" />
-                        <div className="w-0.5 h-0.5 rounded-full bg-slate-600" />
+                        <div className="w-1 h-3 bg-border rounded-full" />
+                        <div className="w-1 h-3 bg-border rounded-full" />
                      </div>
                   </div>
                </div>
             </div>
 
             {/* Right Pane: Preview */}
-            <div className={cn(
-              "flex-1 flex flex-col bg-slate-100/50 dark:bg-slate-900/40 relative overflow-hidden transition-all duration-300",
-              mobileView === "preview" ? "flex" : "hidden md:flex"
-            )}>
-              {/* Preview Toolbar */}
-              <div className="h-12 border-b border-border/50 bg-white/50 dark:bg-slate-800/30 backdrop-blur-md flex items-center justify-between px-4 sticky top-0 z-10">
-                 <div className="flex items-center gap-2">
-                    <button 
-                      onClick={handleCompile}
-                      disabled={isCompiling}
-                      className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 text-white text-[10px] font-bold uppercase tracking-widest hover:bg-emerald-600 transition-colors disabled:opacity-50"
-                    >
-                      {isCompiling ? (
-                        <Loader2 size={12} className="animate-spin" />
-                      ) : (
-                        <Play size={12} />
-                      )}
-                      Recompile
-                    </button>
-                 </div>
+            <div 
+              className={cn(
+                "flex-1 flex flex-col bg-slate-50/50 dark:bg-slate-900/10 transition-all duration-300 overflow-hidden relative",
+                mobileView === "preview" ? "flex" : "hidden md:flex"
+              )}
+              style={{ width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : `${100 - leftWidth}%` }}
+            >
+              {/* Recompile Toolbar - Above PDF */}
+              <div className="flex items-center px-3 py-2   dark:bg-slate-900/80 backdrop-blur-sm shrink-0">
+                <button
+                  onClick={handleCompile}
+                  disabled={isCompiling}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-[11px] font-bold uppercase tracking-wider transition-all shadow-md shadow-emerald-500/25 disabled:opacity-60"
+                >
+                  {isCompiling ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Play size={13} className="fill-current" />
+                  )}
+                  {isCompiling ? "Building..." : "Recompile"}
+                </button>
               </div>
 
               {/* PDF Container */}
               <div className="flex-1 p-4 md:p-8 overflow-auto flex justify-center bg-slate-200/20 dark:bg-black/40">
                 {pdfUrl ? (
-                  <div className="w-full max-w-4xl h-[600px] md:h-[1200px]">
+                  <div className="w-full max-w-4xl h-full">
                     <DocumentViewer url={pdfUrl} format="pdf" />
                   </div>
                 ) : (
@@ -389,115 +554,116 @@ export default function ResumeEditorPage() {
             </div>
           </>
         ) : (
-          /* PDF/DOCX Review Layout */
-          <div className="flex-1 flex flex-col md:flex-row overflow-hidden w-full">
-             {/* Left: Enhanced Viewer */}
-             <div className="flex-[3] h-full overflow-y-auto bg-slate-100 dark:bg-slate-950/40 p-4 md:p-12 flex justify-center custom-scrollbar">
-                <div className="w-full max-w-4xl space-y-8">
-                  <div className="flex items-center justify-between px-2">
-                    <div className="space-y-1">
-                      <h3 className="text-sm font-bold tracking-tight text-slate-900 dark:text-white uppercase tracking-[0.1em]">Verification Preview</h3>
-                      <p className="text-[11px] text-slate-400 font-medium">Original {format.toUpperCase()} record as initialized.</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20">
-                        Institutional Match
-                      </div>
-                    </div>
+          /* PDF/DOCX Insight Dashboard */
+          <>
+            <div className="flex-[3] h-full overflow-y-auto bg-slate-100/50 dark:bg-black/40 p-4 md:p-12 flex justify-center custom-scrollbar border-r border-border/50">
+              <div className="w-full max-w-4xl space-y-8">
+                <div className="flex items-center justify-between px-2">
+                  <div className="space-y-1">
+                    <h3 className="text-[10px] font-black tracking-widest text-primary uppercase">Identity Verification Preview</h3>
+                    <p className="text-sm font-bold text-slate-800 dark:text-white">Original {format.toUpperCase()} Document Vault</p>
                   </div>
-                  
-                  <div className="w-full h-[800px] md:h-[1100px]">
-                    {pdfUrl ? (
-                      <DocumentViewer url={pdfUrl} format={format} />
-                    ) : (
-                      <div className="h-full w-full rounded-3xl border-2 border-dashed border-border flex flex-col items-center justify-center text-muted-foreground animate-pulse gap-4">
-                        <Loader2 className="w-8 h-8 animate-spin" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Initializing vault access...</span>
-                      </div>
-                    )}
+                  <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-[10px] font-bold uppercase tracking-widest border border-primary/20">
+                     Institutional Record
                   </div>
                 </div>
-             </div>
-
-             {/* Right: Inline AI Review Panel */}
-             <div className="flex-[2] h-full border-l border-border bg-white dark:bg-slate-900/30 overflow-y-auto custom-scrollbar p-10 space-y-10">
-                <div className="space-y-1">
-                  <h4 className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
-                    <Sparkles size={14} className="animate-pulse" />
-                    Strategic Assessment
-                  </h4>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-200">Institutional Review Dashboard</p>
+                
+                <div className="w-full h-[800px] md:h-[1100px] rounded-3xl overflow-hidden border border-border bg-white dark:bg-slate-900 shadow-2xl">
+                  {pdfUrl ? (
+                    <DocumentViewer url={pdfUrl} format={format} />
+                  ) : (
+                    <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground animate-pulse gap-4">
+                      <Loader2 className="w-8 h-8 animate-spin" />
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Accessing secure asset...</span>
+                    </div>
+                  )}
                 </div>
+              </div>
+            </div>
 
-                {isAnalyzing ? (
-                  <div className="py-20 flex flex-col items-center justify-center space-y-4">
-                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse">Running AI Synthesis...</p>
-                  </div>
-                ) : (
-                  <div className="space-y-10">
-                    {/* Score Card */}
-                    {score !== null && (
-                      <motion.div 
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden group shadow-sm"
+            <div className="flex-[2] h-full bg-white dark:bg-slate-900 overflow-y-auto custom-scrollbar p-10 space-y-10 shadow-[-20px_0_50px_rgba(0,0,0,0.02)]">
+               <div className="space-y-1">
+                 <h4 className="flex items-center gap-2 text-[10px] font-bold text-primary uppercase tracking-[0.2em]">
+                   <Sparkles size={14} className="animate-pulse" />
+                   Strategic Insight Hub
+                 </h4>
+                 <p className="text-lg font-black text-slate-800 dark:text-white tracking-tight">AI-Powered Synthesis</p>
+               </div>
+
+               {isAnalyzing ? (
+                 <div className="py-20 flex flex-col items-center justify-center space-y-4">
+                   <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                   <p className="text-xs font-bold text-slate-400 uppercase tracking-widest animate-pulse font-mono">Simulating Review Protocols...</p>
+                 </div>
+               ) : (
+                 <div className="space-y-10">
+                   {/* Score Card */}
+                   {score !== null && (
+                     <motion.div 
+                       initial={{ opacity: 0, scale: 0.95 }}
+                       animate={{ opacity: 1, scale: 1 }}
+                       className="p-8 rounded-[2.5rem] bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-center relative overflow-hidden group shadow-sm"
+                     >
+                        <div className="relative z-10">
+                           <span className={cn(
+                             "text-6xl font-black tracking-tighter",
+                             score > 80 ? "text-emerald-500" : score > 60 ? "text-amber-500" : "text-rose-500"
+                           )}>
+                             {score}
+                           </span>
+                           <sub className="text-muted-foreground text-sm font-bold ml-1">/100</sub>
+                           <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-3">Readiness Index</p>
+                        </div>
+                     </motion.div>
+                   )}
+
+                   {/* Extraction Preview */}
+                   {extractedText && (
+                      <div className="space-y-3">
+                         <h5 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Raw Context Data</h5>
+                         <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-[11px] leading-relaxed text-slate-500 dark:text-slate-400 font-mono line-clamp-6 opacity-70 italic shadow-inner">
+                            {extractedText}
+                         </div>
+                      </div>
+                   )}
+
+                   {/* Actions */}
+                   <div className="space-y-4">
+                      <button 
+                        onClick={() => setIsAIOpen(true)}
+                        className="w-full px-8 py-5 rounded-2xl bg-[#2563EB] text-white text-[10px] font-black uppercase tracking-[0.2em] shadow-[0_20px_40px_rgba(37,99,235,0.15)] hover:scale-[1.02] transition-all flex items-center justify-center gap-3 active:scale-95 group"
                       >
-                         <div className="relative z-10">
-                            <span className={cn(
-                              "text-6xl font-black tracking-tighter",
-                              score > 80 ? "text-emerald-500" : score > 60 ? "text-amber-500" : "text-rose-500"
-                            )}>
-                              {score}
-                            </span>
-                            <sub className="text-muted-foreground text-sm font-bold ml-1">/100</sub>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-3">Readiness Index</p>
-                         </div>
-                      </motion.div>
-                    )}
+                         Initialize LaTeX Synthesis <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                      </button>
+                      <p className="text-[10px] text-center text-slate-400 font-medium">Use the AI strategically to convert this document into a structured template.</p>
+                   </div>
 
-                    {/* Metrics */}
-                    <div className="grid grid-cols-1 gap-4">
-                       {impactFeedback && (
-                         <div className="p-6 rounded-3xl bg-emerald-50/30 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 space-y-2">
-                           <h5 className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">Leadership Impact</h5>
-                           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{impactFeedback}</p>
-                         </div>
-                       )}
-                       {atsFeedback && (
-                         <div className="p-6 rounded-3xl bg-indigo-50/30 dark:bg-indigo-950/10 border border-indigo-100/50 dark:border-indigo-900/20 space-y-2">
-                           <h5 className="text-[10px] font-black text-indigo-600 dark:text-indigo-500 uppercase tracking-widest">System Optimization</h5>
-                           <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{atsFeedback}</p>
-                         </div>
-                       )}
-                    </div>
-
-                    {/* Suggestions */}
-                    <div className="space-y-6">
-                      <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Actionable Intelligence</h4>
-                      <div className="space-y-4">
-                         {suggestions.length > 0 ? suggestions.map((s, i) => (
-                           <motion.div 
-                             key={i}
-                             initial={{ opacity: 0, x: 20 }}
-                             animate={{ opacity: 1, x: 0 }}
-                             transition={{ delay: i * 0.1 }}
-                             className="bg-slate-50 dark:bg-slate-800/30 p-5 rounded-2xl border border-slate-100 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400 leading-relaxed relative pl-12"
-                           >
-                              <div className="absolute left-5 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-primary/30" />
-                              {s}
-                           </motion.div>
-                         )) : (
-                           <div className="py-12 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-3xl text-center">
-                              <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">No critical failures</p>
-                           </div>
-                         )}
-                      </div>
-                    </div>
-                  </div>
-                )}
-             </div>
-          </div>
+                   {/* Metrics */}
+                   <div className="grid grid-cols-1 gap-4">
+                      {impactFeedback && (
+                        <div className="p-6 rounded-3xl bg-emerald-50/30 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20 space-y-4">
+                          <h5 className="flex items-center gap-2 text-[10px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest">
+                             <CheckCircle size={14} />
+                             Leadership Impact
+                          </h5>
+                          <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed max-w-none">
+                             <ReactMarkdown 
+                               remarkPlugins={[remarkGfm, remarkBreaks]}
+                               components={{
+                                 strong: ({ children }) => <strong className="font-semibold text-slate-900 dark:text-slate-100">{children}</strong>,
+                                 p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                               }}
+                             >
+                               {impactFeedback}
+                             </ReactMarkdown>
+                          </div>
+                        </div>
+                      )}
+                   </div>
+                 </div>
+               )}
+            </div>
+          </>
         )}
       </main>
 
@@ -511,7 +677,7 @@ export default function ResumeEditorPage() {
         isLoading={isAnalyzing}
         error={aiError}
         onRetry={handleAnalyze}
-        resumeContent={code}
+        resumeContent={code || extractedText}
       />
     </div>
   );

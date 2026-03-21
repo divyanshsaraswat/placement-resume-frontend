@@ -2,7 +2,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import { createPortal } from "react-dom";
 import { useAuth } from "@/context/auth-context";
-import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2, FileCode, FilePenLine, Trash2, Send, Download, CheckCircle, Upload } from "lucide-react";
+import { FileText, Plus, Search, Filter, MoreVertical, ExternalLink, Loader2, FileCode, FilePenLine, Trash2, Trash, Send, Download, CheckCircle, Upload, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { resumeApi } from "@/lib/api";
@@ -72,66 +72,134 @@ export default function StudentResumesPage() {
 
   const handleCreateResume = async (type: string, template: string, format: string, file?: File) => {
     try {
-      const newResume = await resumeApi.createResume(type, template, format, file);
-      toast.success("Resume version initialized!");
+      // Safety: Force format if file extension suggests otherwise
+      let finalFormat = format;
+      if (file) {
+        if (file.name.toLowerCase().endsWith('.pdf')) finalFormat = 'pdf';
+        else if (file.name.toLowerCase().endsWith('.docx')) finalFormat = 'docx';
+      }
       
-      if (format === 'latex') {
+      console.log(`[ResumeCreate] Initializing ${type} in ${finalFormat} format`, { hasFile: !!file });
+      
+      if (finalFormat !== 'latex' && !file) {
+        throw new Error(`A ${finalFormat.toUpperCase()} file is required for this strategy.`);
+      }
+
+      const newResume = await resumeApi.createResume(type, template, finalFormat, file);
+      toast.success("Resume created successfully!");
+      
+      if (finalFormat === 'latex') {
         router.push(`/dashboard/student/resumes/${newResume.id || newResume._id}/edit`);
       } else {
         fetchResumes();
       }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to create resume");
+    } catch (err: any) {
+      console.error("[ResumeCreate Error]", err);
+      const detail = err.response?.data?.detail;
+      const errorMsg = typeof detail === 'string' ? detail : (Array.isArray(detail) ? detail[0]?.msg : "Failed to create resume");
+      toast.error(errorMsg);
     }
   };
 
   const handleDeleteResume = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this resume? This cannot be undone.")) return;
-    try {
-      await resumeApi.deleteResume(id);
-      toast.success("Resume deleted");
-      fetchResumes();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete resume");
-    } finally {
-      setOpenMenuId(null);
-    }
+    if (!confirm("Are you sure you want to delete this entire document and all its versions? This cannot be undone.")) return;
+    
+    setOpenMenuId(null);
+    toast.promise(resumeApi.deleteResume(id), {
+      loading: 'Deleting document portfolio...',
+      success: () => {
+        fetchResumes();
+        return 'Document portfolio permanently deleted';
+      },
+      error: (err: any) => err?.response?.data?.detail || 'Failed to delete document',
+    });
+  };
+
+  const handleDeleteVersion = async (resumeId: string, versionId: string) => {
+    if (!confirm("Are you sure you want to delete this specific version?")) return;
+    
+    setOpenMenuId(null);
+    toast.promise(resumeApi.deleteVersion(resumeId, versionId), {
+      loading: 'Deleting record iteration...',
+      success: () => {
+        fetchResumes();
+        return 'Iterative record deleted successfully';
+      },
+      error: (err: any) => err?.response?.data?.detail || 'Failed to delete version',
+    });
   };
 
   const handleSubmitResume = async (id: string) => {
-    try {
-      await resumeApi.submitResume(id);
-      toast.success("Resume submitted for review!");
-      fetchResumes();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to submit resume");
-    } finally {
-      setOpenMenuId(null);
-    }
+    setOpenMenuId(null);
+    toast.promise(resumeApi.submitResume(id), {
+      loading: 'Initializing review protocols...',
+      success: () => {
+        fetchResumes();
+        return 'Document successfully submitted to verification queue';
+      },
+      error: (err: any) => err?.response?.data?.detail || 'Failed to submit document',
+    });
   };
 
   const handleAddVersion = async (resumeId: string, type: string, latexCode: string, format: string, file?: File) => {
-    try {
-      await resumeApi.addVersion(resumeId, type, latexCode, format, file);
-      toast.success("New version added!");
-      fetchResumes();
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to add version");
-    }
+    toast.promise(resumeApi.addVersion(resumeId, type, latexCode, format, file), {
+      loading: `Uploading new ${format.toUpperCase()} record...`,
+      success: () => {
+        fetchResumes();
+        return 'New iterative record successfully verified';
+      },
+      error: (err: any) => err?.response?.data?.detail || 'Failed to establish new record version',
+    });
   };
 
-  const filteredResumes = resumes.filter(resume => {
-    const latestVersion = resume.versions[resume.versions.length - 1];
-    const matchesSearch = (latestVersion?.type || "Technical Resume")
+  const allVersionCards = resumes.flatMap(resume => 
+    resume.versions.map((version: any, index: number) => ({
+      ...version,
+      resumeId: resume.id || resume._id,
+      versionIndex: index + 1,
+      totalVersions: resume.versions.length,
+      // We'll use this for the unique key
+      key: `${resume.id || resume._id}-${version.version_id || index}`
+    }))
+  ).sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+
+  const filteredCards = allVersionCards.filter(card => {
+    const matchesSearch = (card.type || "Technical Resume")
       .toLowerCase()
       .includes(searchQuery.toLowerCase());
-    const matchesStatus = statusFilter === "all" || (latestVersion?.status || "draft") === statusFilter;
+    const matchesStatus = statusFilter === "all" || (card.status || "draft") === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const formatThemes: Record<string, { icon: any, color: string, stripe: string, borderColor: string, badge: string, label: string, action: string }> = {
+    latex: { 
+      icon: FileCode, 
+      color: "text-emerald-500",
+      stripe: "bg-emerald-500",
+      borderColor: "group-hover:border-emerald-500",
+      badge: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", 
+      label: "Institutional LaTeX",
+      action: "Edit Source →"
+    },
+    pdf: { 
+      icon: FileText, 
+      color: "text-red-500",
+      stripe: "bg-red-500",
+      borderColor: "group-hover:border-red-500",
+      badge: "bg-red-500/10 text-red-600 border-red-500/20", 
+      label: "Portable Document",
+      action: "Insight Hub →"
+    },
+    docx: { 
+      icon: FileText, 
+      color: "text-blue-500",
+      stripe: "bg-blue-500",
+      borderColor: "group-hover:border-blue-500",
+      badge: "bg-blue-500/10 text-blue-600 border-blue-500/20", 
+      label: "Word Processing",
+      action: "Insight Hub →"
+    },
+  };
 
   const statusColors: Record<string, string> = {
     approved: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
@@ -149,9 +217,9 @@ export default function StudentResumesPage() {
       </div>
 
       {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 border-b border-slate-50 dark:border-slate-900 pb-4">
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 sm:gap-8 border-b border-slate-50 dark:border-slate-900 pb-4">
         <div className="flex-1 w-full flex items-center gap-3">
-          <Search size={16} className="text-slate-400 dark:text-slate-500" />
+          <Search size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
           <input 
             type="text" 
             placeholder="Search documents..." 
@@ -160,13 +228,13 @@ export default function StudentResumesPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
-        <div className="flex items-center gap-2">
-          {["all", "approved", "submitted", "draft"].map((status) => (
+        <div className="flex items-center gap-2 flex-wrap shrink-0">
+          {["all", "approved", "submitted", "rejected", "draft"].map((status) => (
             <button 
               key={status}
               onClick={() => setStatusFilter(status)}
               className={cn(
-                "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all",
+                "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest transition-all whitespace-nowrap shrink-0",
                 statusFilter === status 
                   ? "bg-primary text-white shadow-lg shadow-primary/20" 
                   : "bg-slate-100/50 dark:bg-slate-900/50 text-slate-500 dark:text-slate-400 hover:text-primary"
@@ -184,7 +252,7 @@ export default function StudentResumesPage() {
           <Loader2 className="animate-spin text-slate-200" size={32} />
           <p className="text-xs text-slate-300 font-light">Loading documents...</p>
         </div>
-      ) : filteredResumes.length === 0 ? (
+      ) : filteredCards.length === 0 ? (
         <div className="h-64 flex flex-col items-center justify-center gap-4 opacity-40 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem]">
           <Search size={48} strokeWidth={0.5} />
           <div className="text-center space-y-1">
@@ -200,12 +268,16 @@ export default function StudentResumesPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
-          {filteredResumes.map((resume, i) => {
-            const resumeId = resume.id || resume._id;
-            const latestVersion = resume.versions[resume.versions.length - 1];
+          {filteredCards.map((version, i) => {
+            const resumeId = version.resumeId;
+            const cardId = version.key;
+            const formatKey = (version.format as string)?.toLowerCase() || 'latex';
+            const formatTheme = formatThemes[formatKey] || formatThemes.latex;
+            const FormatIcon = formatTheme.icon;
+
             return (
               <motion.div
-                key={resumeId}
+                key={cardId}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: i * 0.1 }}
@@ -214,36 +286,39 @@ export default function StudentResumesPage() {
                   router.push(`/dashboard/student/resumes/${resumeId}/edit`);
                 }}
               >
-                <div className="aspect-[4/3] rounded-3xl bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 shadow-sm flex flex-col p-8 transition-all group-hover:bg-slate-50 dark:group-hover:bg-slate-900 relative">
+                <div className={cn(
+                  "aspect-[4/3] rounded-3xl bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 border-b-[3px] border-b-transparent shadow-sm flex flex-col p-8 transition-all group-hover:bg-slate-50 dark:group-hover:bg-slate-900 relative overflow-hidden group-hover:shadow-md group-hover:-translate-y-1",
+                  formatTheme.borderColor
+                )}>
+                  {/* Hover Accent Bar - Always visible 2px, grows to 6px */}
+                  <div className={cn(
+                    "absolute bottom-0 left-0 right-0 h-[2px] group-hover:h-1.5 transition-all duration-300",
+                    formatTheme.color.replace('text-', 'bg-')
+                  )} />
                   <div className="flex justify-between items-start">
-                    <div className="text-slate-400 dark:text-slate-500 group-hover:text-primary transition-colors flex items-center gap-3">
-                      {latestVersion?.format === 'latex' ? (
-                        <FileCode size={32} strokeWidth={1} />
-                      ) : (
-                        <FileText size={32} strokeWidth={1} />
-                      )}
-                      {latestVersion?.format && latestVersion.format !== 'latex' && (
-                        <span className="text-[10px] font-bold bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-lg uppercase tracking-wider text-slate-500">
-                          {latestVersion.format}
-                        </span>
-                      )}
+                    <div className={cn("transition-colors flex items-start gap-3", formatTheme.color)}>
+                      <FormatIcon size={24} strokeWidth={1.5} className="mt-1" />
+                      <div className="flex flex-col">
+                         <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400">Format</span>
+                         <span className={cn("text-xs font-black uppercase tracking-widest", formatTheme.color)}>{version.format || "LATEX"}</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <div className={cn(
-                        "px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-widest",
-                        latestVersion?.status === 'approved' ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800'
+                        "px-3 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.2em] border transition-all",
+                        statusColors[version.status as string] || statusColors.draft
                       )}>
-                        {latestVersion?.status || "draft"}
+                        {version.status || "draft"}
                       </div>
                       <button 
-                        ref={el => { buttonRefs.current[resumeId] = el; }}
+                        ref={el => { buttonRefs.current[cardId] = el; }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setOpenMenuId(openMenuId === resumeId ? null : resumeId);
+                          setOpenMenuId(openMenuId === cardId ? null : cardId);
                         }}
                         className={cn(
-                          "p-1.5 rounded-lg text-slate-400 dark:text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all",
-                          openMenuId === resumeId && "text-primary bg-slate-100 dark:bg-slate-800"
+                          "p-2 rounded-xl text-slate-400 dark:text-slate-500 hover:text-primary hover:bg-slate-100 dark:hover:bg-slate-800 transition-all",
+                          openMenuId === cardId && "text-primary bg-slate-100 dark:bg-slate-800"
                         )}
                       >
                         <MoreVertical size={16} />
@@ -251,22 +326,29 @@ export default function StudentResumesPage() {
                     </div>
                   </div>
                   
-                  <div className="mt-auto space-y-1">
-                    <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">v.{resume.versions.length}</p>
-                    <h3 className="text-lg font-medium leading-tight text-slate-800 dark:text-white transition-colors group-hover:text-primary">
-                      {latestVersion?.type || "Technical Resume"}
+                  <div className="mt-auto flex flex-col items-start space-y-2 relative z-10">
+                    <div className="flex items-center gap-1.5 opacity-60">
+                       <p className="text-[9px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400">V.{version.versionIndex}</p>
+                       <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-600" />
+                       <p className={cn("text-[9px] font-black uppercase tracking-widest", formatTheme.color)}>{formatTheme.label}</p>
+                    </div>
+                    <h3 className="text-xl font-medium leading-tight text-slate-800 dark:text-white transition-colors group-hover:text-primary line-clamp-1">
+                      {version.type || "Untitled"}
                     </h3>
                   </div>
                 </div>
                 <div className="px-2 flex justify-between items-center text-[11px]">
-                   <span className="text-slate-500 dark:text-slate-400 font-light">Score: {latestVersion?.ai_score?.total || "--"}</span>
-                   <span className="text-primary/70 dark:text-slate-300 group-hover:text-primary transition-colors font-medium text-[10px] font-bold uppercase tracking-widest">
-                     {latestVersion?.format === 'latex' ? 'Edit document →' : 'View version →'}
+                   <div className="flex items-center gap-1 text-slate-500 dark:text-slate-400 font-light">
+                      <Sparkles size={10} className="text-primary/40" />
+                      <span>Institutional Score: <span className="font-bold text-slate-700 dark:text-slate-200">{version.ai_score?.total || "--"}</span></span>
+                   </div>
+                   <span className="text-primary/70 dark:text-slate-300 group-hover:text-primary transition-colors font-bold uppercase tracking-widest text-[9px]">
+                     {formatTheme.action}
                    </span>
                 </div>
 
                 {/* Portal-based Menu */}
-                {openMenuId === resumeId && menuPosition && typeof document !== 'undefined' && createPortal(
+                {openMenuId === cardId && menuPosition && typeof document !== 'undefined' && createPortal(
                   <div className="fixed inset-0 z-[100]" onClick={(e) => e.stopPropagation()}>
                     <div 
                       className="absolute inset-0 bg-transparent" 
@@ -299,8 +381,8 @@ export default function StudentResumesPage() {
                           onClick={() => {
                             setVersionDialogResume({
                               id: resumeId,
-                              format: latestVersion?.format || 'latex',
-                              type: latestVersion?.type || 'Technical Resume'
+                              format: version.format || 'latex',
+                              type: version.type || 'Technical Resume'
                             });
                             setOpenMenuId(null);
                           }}
@@ -310,7 +392,7 @@ export default function StudentResumesPage() {
                           <span>Upload New Version</span>
                         </button>
 
-                        {(latestVersion?.status === 'draft' || latestVersion?.status === 'rejected') && (
+                        {(version.status === 'draft' || version.status === 'rejected') && (
                           <button
                             onClick={() => handleSubmitResume(resumeId)}
                             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-amber-50 dark:hover:bg-amber-900/20 hover:text-amber-600 transition-colors"
@@ -320,9 +402,9 @@ export default function StudentResumesPage() {
                           </button>
                         )}
 
-                        {latestVersion?.file_url && (
+                        {version.file_url && (version.format as string)?.toLowerCase() !== 'docx' && (
                           <button
-                            onClick={() => window.open(latestVersion.file_url, '_blank')}
+                            onClick={() => window.open(version.file_url, '_blank')}
                             className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-muted-foreground hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                           >
                             <Download size={14} />
@@ -333,11 +415,19 @@ export default function StudentResumesPage() {
                         <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
                         
                         <button
-                          onClick={() => handleDeleteResume(resumeId)}
+                          onClick={() => handleDeleteVersion(resumeId, version.version_id)}
                           className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
                         >
                           <Trash2 size={14} />
-                          <span>Delete Record</span>
+                          <span>Delete Version</span>
+                        </button>
+
+                        <button
+                          onClick={() => handleDeleteResume(resumeId)}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-[10px] font-bold uppercase tracking-wider text-rose-500/50 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
+                        >
+                          <Trash size={14} />
+                          <span>Delete Entire Record</span>
                         </button>
                       </div>
                     </motion.div>
@@ -350,11 +440,18 @@ export default function StudentResumesPage() {
 
           {/* Add New Card Slot */}
           <motion.div 
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
             onClick={() => setIsCreateOpen(true)}
-            className="aspect-[4/3] rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-4 text-slate-400 hover:text-primary/60 hover:border-primary/40 hover:bg-primary/5 transition-all cursor-pointer group"
+            className="aspect-[4/3] rounded-[2.5rem] border-2 border-dashed border-slate-200 dark:border-slate-800 flex flex-col items-center justify-center gap-6 text-slate-400 hover:text-primary hover:border-primary/40 hover:bg-primary/[0.02] transition-all cursor-pointer group shadow-sm bg-white/50 dark:bg-slate-900/20"
           >
-             <Plus size={32} strokeWidth={1} />
-             <p className="text-sm font-medium">Add New Document</p>
+             <div className="w-16 h-16 rounded-3xl bg-slate-100 dark:bg-slate-900 flex items-center justify-center text-slate-300 group-hover:bg-primary group-hover:text-white transition-all shadow-sm">
+                <Plus size={32} strokeWidth={1.5} />
+             </div>
+             <div className="text-center space-y-1">
+                <p className="text-sm font-bold text-slate-600 dark:text-slate-300">Add New Document</p>
+                <p className="text-[10px] font-medium text-slate-400 uppercase tracking-widest leading-none">Initialize Milestone</p>
+             </div>
           </motion.div>
         </div>
       )}

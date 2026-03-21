@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Plus, X, Sparkles, FileText, ChevronRight, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -87,15 +87,25 @@ Seeking a challenging role in Core Engineering.
 ];
 
 export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDialogProps) {
-  const [selectedTemplate, setSelectedTemplate] = useState(TEMPLATES[0]);
+  const [selectedTemplate, setSelectedTemplate] = useState<any>(null);
   const [name, setName] = useState("");
   const [customType, setCustomType] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Reset state when dialog opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setName("");
+      setCustomType("");
+      setSelectedFile(null);
+      setSelectedTemplate(null);
+    }
+  }, [isOpen]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name) return;
+    if (!name || !selectedTemplate) return;
     
     // Validate file selection for non-latex formats
     if (selectedTemplate.format !== 'latex' && !selectedFile) {
@@ -187,33 +197,33 @@ export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDi
                           onClick={() => setSelectedTemplate(t)}
                           className={cn(
                             "cursor-pointer border-2 p-4 rounded-2xl transition-all flex items-center gap-4 relative overflow-hidden",
-                            selectedTemplate.id === t.id 
+                            selectedTemplate?.id === t.id 
                               ? "border-primary bg-primary/[0.02] shadow-[0_8px_20px_rgba(37,99,235,0.06)]" 
                               : "border-slate-50 dark:border-slate-900 bg-white dark:bg-slate-950 hover:border-slate-200 dark:hover:border-slate-800"
                           )}
                         >
                           <div className={cn(
                             "w-10 h-10 rounded-xl flex items-center justify-center transition-colors shrink-0",
-                            selectedTemplate.id === t.id ? "bg-primary text-white" : "bg-slate-50 dark:bg-slate-900"
+                            selectedTemplate?.id === t.id ? "bg-primary text-white" : "bg-slate-50 dark:bg-slate-900"
                           )}>
                             <t.icon 
                               size={20} 
                               className={cn(
                                 "transition-colors",
-                                selectedTemplate.id === t.id ? "text-white" : t.colorClass
+                                selectedTemplate?.id === t.id ? "text-white" : t.colorClass
                               )} 
                             />
                           </div>
                           <div className="flex-1">
                             <h4 className={cn(
                               "font-bold text-sm transition-colors",
-                              selectedTemplate.id === t.id ? "text-primary dark:text-white" : "text-slate-800 dark:text-slate-200"
+                              selectedTemplate?.id === t.id ? "text-primary dark:text-white" : "text-slate-800 dark:text-slate-200"
                             )}>{t.name}</h4>
                             <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                               {t.description}
                             </p>
                           </div>
-                          {selectedTemplate.id === t.id && (
+                          {selectedTemplate?.id === t.id && (
                             <motion.div 
                               layoutId="active-check"
                               className="bg-primary text-white p-1 rounded-full shrink-0"
@@ -225,7 +235,7 @@ export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDi
 
                         {/* Inline Custom Type Input */}
                         <AnimatePresence>
-                          {selectedTemplate.id === "custom" && t.id === "custom" && (
+                          {selectedTemplate?.id === "custom" && t.id === "custom" && (
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: "auto", opacity: 1 }}
@@ -246,7 +256,7 @@ export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDi
 
                         {/* File Upload Input */}
                         <AnimatePresence>
-                          {selectedTemplate.format !== "latex" && t.id === selectedTemplate.id && (
+                          {selectedTemplate?.format !== "latex" && t.id === selectedTemplate?.id && (
                             <motion.div
                               initial={{ height: 0, opacity: 0 }}
                               animate={{ height: "auto", opacity: 1 }}
@@ -258,13 +268,13 @@ export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDi
                                   <div className="flex flex-col items-center justify-center pt-2 pb-2">
                                     <FileText className="w-6 h-6 mb-2 text-slate-400" />
                                     <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                                      {selectedFile ? selectedFile.name : `Select ${selectedTemplate.format.toUpperCase()} file`}
+                                      {selectedFile ? selectedFile.name : `Select ${selectedTemplate?.format?.toUpperCase()} file`}
                                     </p>
                                   </div>
                                   <input 
                                     type="file" 
                                     className="hidden" 
-                                    accept={selectedTemplate.format === 'pdf' ? '.pdf' : '.docx'}
+                                    accept={selectedTemplate?.format === 'pdf' ? '.pdf' : '.docx'}
                                     onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                                   />
                                 </label>
@@ -289,7 +299,7 @@ export function CreateResumeDialog({ isOpen, onClose, onCreate }: CreateResumeDi
                 </button>
                 <button 
                   type="submit"
-                  disabled={isSubmitting || !name || (selectedTemplate.format !== 'latex' && !selectedFile)}
+                  disabled={isSubmitting || !name || !selectedTemplate || (selectedTemplate.format !== 'latex' && !selectedFile)}
                   className="flex-1 bg-[#2563EB] hover:bg-[#1d4ed8] text-white py-4 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-[0_8px_20px_rgba(37,99,235,0.25)] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:shadow-none group"
                 >
                   {isSubmitting ? (

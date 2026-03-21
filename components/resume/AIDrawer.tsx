@@ -1,13 +1,33 @@
 "use client";
 
+import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Send, X, MessageSquare, Bot, RefreshCcw } from "lucide-react";
+import { Sparkles, Send, X, MessageSquare, Bot, RefreshCcw, Copy, Check } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { resumeApi } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = React.useState(false);
+  const handleCopy = () => {
+    navigator.clipboard.writeText(text).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
+  return (
+    <button
+      onClick={handleCopy}
+      className="flex items-center gap-1.5 text-[10px] text-slate-400 hover:text-white transition-colors"
+    >
+      {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+      {copied ? 'Copied!' : 'Copy'}
+    </button>
+  );
+}
 
 interface Message {
   role: "user" | "ai";
@@ -145,7 +165,7 @@ export function AIDrawer({
                         initial={{ opacity: 0, scale: 0.95, y: 10 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         className={cn(
-                          "flex gap-4 max-w-[90%] md:max-w-[700px]",
+                          "flex gap-4 max-w-[85%] sm:max-w-[80%] md:max-w-[750px] lg:max-w-[850px]",
                           msg.role === "user" ? "ml-auto flex-row-reverse" : ""
                         )}
                       >
@@ -158,37 +178,50 @@ export function AIDrawer({
                           <div className={cn(
                             "px-5 py-3.5 rounded-[1.5rem] text-sm leading-relaxed",
                             msg.role === "ai" 
-                              ? "bg-slate-50 dark:bg-slate-900 border border-border/40 text-foreground shadow-sm prose dark:prose-invert prose-sm max-w-none"
+                              ? "bg-slate-50 dark:bg-slate-900 border border-border/40 text-foreground shadow-sm max-w-none"
                               : "bg-primary text-white font-medium"
                           )}>
                             {msg.role === "ai" ? (
                               <ReactMarkdown 
                                 remarkPlugins={[remarkGfm]}
                                 components={{
-                                  p: ({ children }) => <p className="mb-4 last:mb-0 leading-relaxed text-slate-700 dark:text-slate-300">{children}</p>,
-                                  ul: ({ children }) => <ul className="list-disc ml-5 mb-4 space-y-2">{children}</ul>,
-                                  ol: ({ children }) => <ol className="list-decimal ml-5 mb-4 space-y-2">{children}</ol>,
-                                  li: ({ children }) => <li className="pl-1">{children}</li>,
-                                  code: ({ children }) => <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[12px] font-mono font-medium">{children}</code>,
-                                  strong: ({ children }) => <strong className="font-bold text-slate-900 dark:text-slate-100">{children}</strong>,
-                                  h1: ({ children }) => <h1 className="text-xl font-bold mt-6 mb-3 border-b pb-2">{children}</h1>,
-                                  h2: ({ children }) => <h2 className="text-lg font-bold mt-5 mb-2">{children}</h2>,
-                                  h3: ({ children }) => <h3 className="text-md font-bold mt-4 mb-2">{children}</h3>,
-                                  table: ({ children }) => (
-                                    <div className="overflow-x-auto my-4 rounded-xl border border-border/60 shadow-sm">
-                                      <table className="w-full text-xs text-left border-collapse">{children}</table>
-                                    </div>
-                                  ),
-                                  thead: ({ children }) => <thead className="bg-slate-100 dark:bg-slate-800 font-bold">{children}</thead>,
-                                  th: ({ children }) => <th className="px-4 py-2 border-b border-border/60">{children}</th>,
-                                  td: ({ children }) => <td className="px-4 py-2 border-b border-border/40">{children}</td>,
+                                  p: ({ children }) => <p className="mb-3 last:mb-0 leading-relaxed text-slate-600 dark:text-slate-400">{children}</p>,
+                                  ul: ({ children }) => <ul className="list-disc ml-5 mb-3 space-y-1.5 font-light">{children}</ul>,
+                                  ol: ({ children }) => <ol className="list-decimal ml-5 mb-3 space-y-1.5 font-light">{children}</ol>,
+                                  li: ({ children }) => <li className="pl-1 text-slate-600 dark:text-slate-400">{children}</li>,
+                                  code: ({ children, className }) => {
+                                    const codeStr = String(children).replace(/\n$/, '');
+                                    const isBlock = codeStr.includes('\n') || (className && className.startsWith('language-')) || codeStr.length > 50;
+                                    if (isBlock) {
+                                      return (
+                                        <div className="relative my-3 rounded-xl overflow-hidden border border-slate-700/50 group">
+                                          <div className="flex items-center justify-between px-4 py-2 bg-slate-800">
+                                            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{className?.replace('language-', '') || 'code'}</span>
+                                            <CopyButton text={codeStr} />
+                                          </div>
+                                          <pre className="overflow-x-auto p-4 bg-slate-950 text-slate-100 text-xs font-mono leading-relaxed whitespace-pre scrollbar-hide"><code>{codeStr}</code></pre>
+                                        </div>
+                                      );
+                                    }
+                                    return <code className="bg-primary/10 text-primary px-1.5 py-0.5 rounded text-[11px] font-mono">{children}</code>;
+                                  },
+                                  strong: ({ children }) => <strong className="font-semibold text-slate-900 dark:text-slate-100">{children}</strong>,
+                                  h1: ({ children }) => <h1 className="text-sm font-bold mt-4 mb-2 text-slate-900 dark:text-slate-100">{children}</h1>,
+                                  h2: ({ children }) => <h2 className="text-xs font-bold mt-3 mb-1.5 text-slate-900 dark:text-slate-100">{children}</h2>,
                                 }}
                               >
-                                {msg.content
-                                  .replace(/([^\n])(#{1,6}\s)/g, '$1\n\n$2') // Header needs newline
-                                  .replace(/([^\n])(\n[*+-]\s)/g, '$1\n\n$2') // List needs block newline
-                                  .replace(/([^\n])(\n\d+\.\s)/g, '$1\n\n$2') // Numbered list needs block newline
-                                }
+                                {(() => {
+                                  let text = msg.content;
+                                  // Detect long inline code that should be a block (e.g. `latex \documentclass...`)
+                                  text = text.replace(/(`)(latex\s+[^\n`]{30,})(`)/g, '\n\n```$2\n```\n\n');
+                                  // Insert newlines before inline list markers like "* Item" not already at start of line
+                                  text = text.replace(/([^\n])\* /g, '$1\n\n* ');
+                                  // Split inline numbered list items
+                                  text = text.replace(/([^\n])(\d+\. )/g, '$1\n\n$2');
+                                  // Insert newlines before headers
+                                  text = text.replace(/([^\n])(#{1,6} )/g, '$1\n\n$2');
+                                  return text;
+                                })()}
                               </ReactMarkdown>
                             ) : (
                               msg.content
@@ -292,13 +325,37 @@ export function AIDrawer({
                              {impactFeedback && (
                                <div className="p-4 rounded-2xl bg-emerald-50/50 dark:bg-emerald-950/10 border border-emerald-100/50 dark:border-emerald-900/20">
                                  <h5 className="text-[9px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-widest mb-1">Impact Analysis</h5>
-                                 <p className="text-[11px] text-muted-foreground leading-relaxed">{impactFeedback}</p>
+                                 <div className="text-[11px] text-muted-foreground leading-relaxed max-w-none">
+                                    <ReactMarkdown 
+                                      remarkPlugins={[remarkGfm, remarkBreaks]}
+                                      components={{
+                                        strong: ({ children }) => <strong className="font-semibold text-slate-900 dark:text-slate-100">{children}</strong>,
+                                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                        ul: ({ children }) => <ul className="list-disc ml-4 mb-2 space-y-1">{children}</ul>,
+                                        li: ({ children }) => <li className="pl-1">{children}</li>,
+                                      }}
+                                    >
+                                      {impactFeedback.replace(/([^\n])\* /g, '$1\n\n* ').replace(/([^\n])(\d+\. )/g, '$1\n\n$2')}
+                                    </ReactMarkdown>
+                                 </div>
                                </div>
                              )}
                              {atsFeedback && (
                                <div className="p-4 rounded-2xl bg-indigo-50/50 dark:bg-indigo-950/10 border border-indigo-100/50 dark:border-indigo-900/20">
                                  <h5 className="text-[9px] font-black text-indigo-600 dark:text-indigo-500 uppercase tracking-widest mb-1">ATS Optimization</h5>
-                                 <p className="text-[11px] text-muted-foreground leading-relaxed">{atsFeedback}</p>
+                                 <div className="text-[11px] text-muted-foreground leading-relaxed max-w-none">
+                                    <ReactMarkdown 
+                                      remarkPlugins={[remarkGfm, remarkBreaks]}
+                                      components={{
+                                        strong: ({ children }) => <strong className="font-semibold text-slate-900 dark:text-slate-100">{children}</strong>,
+                                        p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                                        ul: ({ children }) => <ul className="list-disc ml-4 mb-2 space-y-1">{children}</ul>,
+                                        li: ({ children }) => <li className="pl-1">{children}</li>,
+                                      }}
+                                    >
+                                      {atsFeedback.replace(/([^\n])\* /g, '$1\n\n* ').replace(/([^\n])(\d+\. )/g, '$1\n\n$2')}
+                                    </ReactMarkdown>
+                                 </div>
                                </div>
                              )}
                            </div>
@@ -317,7 +374,17 @@ export function AIDrawer({
                                     className="bg-white dark:bg-slate-900/50 p-3.5 md:p-4 rounded-xl md:rounded-2xl border border-border shadow-sm text-[11px] md:text-xs text-muted-foreground font-light leading-relaxed relative pl-9 md:pl-10"
                                   >
                                      <div className="absolute left-3.5 md:left-4 top-4 w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-primary/40" />
-                                     {s}
+                                      <ReactMarkdown
+                                        remarkPlugins={[remarkGfm, remarkBreaks]}
+                                        components={{
+                                          p: ({children}) => <p className="mb-1 last:mb-0 text-[11px] md:text-xs text-muted-foreground">{children}</p>,
+                                          ul: ({children}) => <ul className="list-disc ml-4 mb-1 space-y-0.5 text-[11px] md:text-xs">{children}</ul>,
+                                          li: ({children}) => <li className="pl-1 text-muted-foreground">{children}</li>,
+                                          strong: ({children}) => <strong className="font-semibold text-slate-800 dark:text-slate-200">{children}</strong>,
+                                        }}
+                                      >
+                                        {s.replace(/([^\n])\* /g, '$1\n\n* ').replace(/([^\n])(\d+\. )/g, '$1\n\n$2')}
+                                      </ReactMarkdown>
                                   </motion.div>
                                 ))}
                              </div>

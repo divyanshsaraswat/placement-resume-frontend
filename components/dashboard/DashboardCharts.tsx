@@ -164,6 +164,14 @@ export function LineChart({ data, title, maxValue, className, subtitle }: LineCh
     return d;
   };
 
+  if (!data || data.length < 2) {
+    return (
+      <div className={cn("premium-card flex flex-col items-center justify-center p-8 h-64", className)}>
+        <p className="text-slate-400 text-sm font-medium italic">Insufficient data for trend visualization</p>
+      </div>
+    );
+  }
+
   const currentPath = getSmoothPath(points.map(p => ({ x: p.x, y: p.currY })));
   const previousPath = getSmoothPath(points.map(p => ({ x: p.x, y: p.prevY })));
   const areaPath = currentPath + ` L ${points[points.length - 1].x},100 L ${points[0].x},100 Z`;
@@ -171,7 +179,7 @@ export function LineChart({ data, title, maxValue, className, subtitle }: LineCh
   const lastPoint = data[data.length - 1];
   const firstPoint = data[0];
   const trend = lastPoint.current - firstPoint.current;
-  const trendPct = Math.round((trend / firstPoint.current) * 100);
+  const trendPct = firstPoint.current !== 0 ? Math.round((trend / firstPoint.current) * 100) : 0;
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!containerRef.current) return;

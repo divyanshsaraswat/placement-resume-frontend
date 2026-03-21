@@ -61,5 +61,5 @@ export default authMiddleware;
 
 // Optionally, don't run middleware on some paths
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+  matcher: ['/((?!api|_next/static|_next/image|favicon\\.ico|.*\\.(?:webp|png|jpg|jpeg|gif|svg|ico|css|js|woff2?|ttf|eot)$).*)'],
 };
