@@ -55,7 +55,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <div className={cn("flex items-center justify-between", isCollapsed ? "p-6" : "p-8")}>
         <div className={cn("flex items-center gap-3 text-primary w-full", isCollapsed && "justify-center")}>
           <Link href="/dashboard" className="flex items-center gap-3 px-2 group/logo">
-            <Logo className="h-12 w-auto" iconOnly={isCollapsed} />
+            <Logo className="h-8 w-auto" iconOnly={isCollapsed} />
           </Link>
         </div>
 

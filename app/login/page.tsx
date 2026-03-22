@@ -66,7 +66,7 @@ function LoginContent() {
       >
         <div className="flex flex-col items-center text-center space-y-6 mb-2">
           <Logo className="h-16 w-auto" />
-          <p className="text-muted-foreground font-light text-sm tracking-wide">Institutional Placement ERP Integration</p>
+          <p className="text-muted-foreground font-light text-sm tracking-wide">Institutional Placement Management System</p>
         </div>
 
         <div className="glass p-10 rounded-[2.5rem] shadow-xl space-y-8 flex flex-col items-center text-center">

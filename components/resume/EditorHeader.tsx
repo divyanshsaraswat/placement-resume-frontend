@@ -95,17 +95,19 @@ export function EditorHeader({
         <div className="flex items-center gap-1 sm:mr-2 md:mr-4 sm:border-r border-border sm:pr-2 md:pr-4">
            <button 
              onClick={onSave}
-             disabled={isSaving}
+             disabled={isSaving || status === 'approved'}
              className={cn(
                "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all",
-               hasUnsavedChanges 
-                 ? "bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95" 
-                 : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+               status === 'approved'
+                 ? "text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60"
+                 : hasUnsavedChanges 
+                   ? "bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95" 
+                   : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
              )}
            >
-             <Save size={16} strokeWidth={hasUnsavedChanges ? 2 : 1.5} className={cn(isSaving ? "animate-spin" : "")} />
+             <Save size={16} strokeWidth={hasUnsavedChanges && status !== 'approved' ? 2 : 1.5} className={cn(isSaving ? "animate-spin" : "")} />
              <span className="hidden lg:inline">
-               {isSaving ? "Saving..." : hasUnsavedChanges ? "Save Changes" : "Changes Saved"}
+               {isSaving ? "Saving..." : status === 'approved' ? "Verified" : hasUnsavedChanges ? "Save Changes" : "Changes Saved"}
              </span>
            </button>
         </div>

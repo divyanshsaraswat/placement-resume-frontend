@@ -199,7 +199,7 @@ export default function ResumeEditorPage() {
   // Navigation guard for browser-level (refresh, close tab)
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges || isCompiling) {
+      if ((hasUnsavedChanges || isCompiling) && latestVersionData?.status !== 'approved') {
         e.preventDefault();
         e.returnValue = "";
       }
@@ -233,7 +233,7 @@ export default function ResumeEditorPage() {
       });
       return;
     }
-    if (hasUnsavedChanges) {
+    if (hasUnsavedChanges && latestVersionData?.status !== 'approved') {
       setConfirmConfig({
         isOpen: true,
         title: "Unsaved Changes",

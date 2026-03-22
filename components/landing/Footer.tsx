@@ -1,5 +1,5 @@
 "use client";
-import { Github, Twitter, Linkedin, ArrowRight } from "lucide-react";
+import { Linkedin, ArrowRight } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import Link from "next/link";
 
@@ -25,7 +25,7 @@ export function Footer() {
           </div>
 
           {/* Quick Links Column */}
-          <div className="md:col-start-7 md:col-span-2 space-y-6">
+          <div className="md:col-start-7 md:col-span-3 space-y-6">
             <h4 className="text-[13px] font-bold uppercase tracking-widest text-white">Explore</h4>
             <ul className="space-y-4 text-[14px] font-medium text-slate-500">
               <li><Link href="#why" className="hover:text-white transition-colors">Why</Link></li>
@@ -35,24 +35,12 @@ export function Footer() {
             </ul>
           </div>
 
-          {/* Institutional Column */}
-          <div className="md:col-span-2 space-y-6">
-            <h4 className="text-[13px] font-bold uppercase tracking-widest text-white">Platform</h4>
-            <ul className="space-y-4 text-[14px] font-medium text-slate-500">
-              <li><Link href="#" className="hover:text-white transition-colors">Documentation</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">LaTeX Support</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Help Center</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">Changelog</Link></li>
-            </ul>
-          </div>
 
           {/* Social / Contact Column */}
-          <div className="md:col-span-2 space-y-6">
+          <div className="md:col-span-3 space-y-6">
             <h4 className="text-[13px] font-bold uppercase tracking-widest text-white">Contact</h4>
             <ul className="space-y-4 text-[14px] font-medium text-slate-500">
-              <li><Link href="#" className="hover:text-white transition-colors">X (Twitter)</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">LinkedIn</Link></li>
-              <li><Link href="#" className="hover:text-white transition-colors">GitHub</Link></li>
+              <li><Link href="https://www.linkedin.com/company/scasys-tech/" target="_blank" rel="noopener noreferrer" className="hover:text-white transition-colors">LinkedIn</Link></li>
               <li><Link href="mailto:support@mnit.ac.in" className="hover:text-white transition-colors">Email Support</Link></li>
             </ul>
           </div>
@@ -67,8 +55,8 @@ export function Footer() {
           </div>
 
           <div className="flex items-center gap-8 order-1 sm:order-2">
-            <Link href="#" className="text-[12px] font-medium text-slate-600 hover:text-white transition-colors">Privacy Policy</Link>
-            <Link href="#" className="text-[12px] font-medium text-slate-600 hover:text-white transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="text-[12px] font-medium text-slate-600 hover:text-white transition-colors">Privacy Policy</Link>
+            <Link href="/terms" className="text-[12px] font-medium text-slate-600 hover:text-white transition-colors">Terms of Service</Link>
             
             <button 
               onClick={scrollToTop}
