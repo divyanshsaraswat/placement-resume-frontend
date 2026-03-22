@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Editor from "@monaco-editor/react";
 import { 
   FileText,
@@ -14,7 +14,9 @@ import {
   User,
   Calendar,
   X,
-  AlertCircle
+  AlertCircle,
+  Clock,
+  Layers
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
@@ -52,6 +54,13 @@ export default function ResumeEditorPage() {
   const [atsFeedback, setAtsFeedback] = useState<string | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [lastSavedCode, setLastSavedCode] = useState("");
+
+  // Queue / WebSocket compile state
+  const [compileStatus, setCompileStatus] = useState<string | null>(null); // queued | processing | completed | error
+  const [queuePosition, setQueuePosition] = useState<number>(0);
+  const [queueEta, setQueueEta] = useState<number>(0);
+  const [compileError, setCompileError] = useState<string | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   const [leftWidth, setLeftWidth] = useState(60); // percentage
   const [isResizing, setIsResizing] = useState(false);
@@ -190,16 +199,40 @@ export default function ResumeEditorPage() {
   // Navigation guard for browser-level (refresh, close tab)
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-      if (hasUnsavedChanges) {
+      if (hasUnsavedChanges || isCompiling) {
         e.preventDefault();
         e.returnValue = "";
       }
     };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [hasUnsavedChanges]);
+  }, [hasUnsavedChanges, isCompiling]);
 
   const handleBack = async () => {
+    if (isCompiling) {
+      setConfirmConfig({
+        isOpen: true,
+        title: "Build In Progress",
+        message: "A document build is currently running. Leaving now will abort the compilation. Are you sure?",
+        variant: "danger",
+        onConfirm: async () => {
+          // Close WebSocket and abort
+          if (wsRef.current) {
+            wsRef.current.close();
+            wsRef.current = null;
+          }
+          setIsCompiling(false);
+          setCompileStatus(null);
+          if (hasUnsavedChanges) {
+            try {
+              await resumeApi.saveResume(id as string, { content: code });
+            } catch (_) {}
+          }
+          router.push("/dashboard/student/resumes");
+        }
+      });
+      return;
+    }
     if (hasUnsavedChanges) {
       setConfirmConfig({
         isOpen: true,
@@ -235,6 +268,11 @@ export default function ResumeEditorPage() {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      // Close any active WebSocket
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+      }
       const jobId = extractJobId(pdfUrl);
       if (jobId) {
         resumeApi.cleanupLatexJob(jobId).catch(console.error);
@@ -245,20 +283,112 @@ export default function ResumeEditorPage() {
   const handleCompile = async () => {
     try {
       setIsCompiling(true);
-      // Cleanup previous job to conserve server space before generating new one
+      setCompileStatus("submitting");
+      setCompileError(null);
+
+      // Cleanup previous job
       const oldJobId = extractJobId(pdfUrl);
       if (oldJobId) {
-         resumeApi.cleanupLatexJob(oldJobId).catch(console.error);
+        resumeApi.cleanupLatexJob(oldJobId).catch(console.error);
       }
-      
-      const url = await resumeApi.compilePdf(code);
-      setPdfUrl(url);
+
+      // Submit async compile job
+      const { job_id, queue_position, eta_seconds } = await resumeApi.compileAsync(code);
+      setQueuePosition(queue_position);
+      setQueueEta(eta_seconds);
+      setCompileStatus(queue_position > 0 ? "queued" : "processing");
+
+      // Connect WebSocket for live updates
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const wsUrl = `${protocol}//${window.location.host}/ws/latex/${job_id}`;
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          setCompileStatus(data.status);
+
+          if (data.status === "queued") {
+            setQueuePosition(data.position || 0);
+            setQueueEta(data.eta_seconds || 0);
+          } else if (data.status === "processing") {
+            setQueuePosition(0);
+            setQueueEta(0);
+          } else if (data.status === "completed") {
+            if (data.pdf_url) {
+              setPdfUrl(data.pdf_url);
+            }
+            setIsCompiling(false);
+            setCompileStatus(null);
+            ws.close();
+            wsRef.current = null;
+          } else if (data.status === "error") {
+            setCompileError(data.error || "Compilation failed");
+            toast.error(data.error || "Institutional build failed");
+            setIsCompiling(false);
+            setCompileStatus(null);
+            ws.close();
+            wsRef.current = null;
+          }
+        } catch (e) {
+          console.error("WS parse error:", e);
+        }
+      };
+
+      ws.onerror = () => {
+        // Fallback to polling if WebSocket fails
+        ws.close();
+        wsRef.current = null;
+        pollCompileStatus(job_id);
+      };
+
+      ws.onclose = () => {
+        wsRef.current = null;
+      };
     } catch (err) {
       toast.error("Institutional build failed");
-    } finally {
       setIsCompiling(false);
+      setCompileStatus(null);
     }
   };
+
+  // Polling fallback (if WebSocket connection fails)
+  const pollCompileStatus = useCallback(async (jobId: string) => {
+    const poll = async () => {
+      try {
+        const data = await resumeApi.getCompileStatus(jobId);
+        setCompileStatus(data.status);
+
+        if (data.status === "queued") {
+          setQueuePosition(data.position || 0);
+          setQueueEta(data.eta_seconds || 0);
+          setTimeout(poll, 1000);
+        } else if (data.status === "processing") {
+          setQueuePosition(0);
+          setTimeout(poll, 1000);
+        } else if (data.status === "completed" || data.status === "error") {
+          if (data.pdf_url) {
+            setPdfUrl(data.pdf_url);
+          }
+          if (data.status === "error") {
+            setCompileError(data.error || "Compilation failed");
+            toast.error(data.error || "Institutional build failed");
+          }
+          setIsCompiling(false);
+          setCompileStatus(null);
+        } else {
+          // unknown status, keep polling
+          setTimeout(poll, 2000);
+        }
+      } catch {
+        setIsCompiling(false);
+        setCompileStatus(null);
+        toast.error("Failed to check compilation status");
+      }
+    };
+    poll();
+  }, []);
 
   const handleAnalyze = async () => {
     setIsAIOpen(true);
@@ -706,7 +836,78 @@ export default function ResumeEditorPage() {
               </div>
 
               {/* PDF Container */}
-              <div className="flex-1 p-4 md:p-8 overflow-auto flex justify-center bg-slate-200/20 dark:bg-black/40">
+              <div className="flex-1 p-4 md:p-8 overflow-auto flex justify-center bg-slate-200/20 dark:bg-black/40 relative">
+                {/* Queue / Compile Overlay */}
+                <AnimatePresence>
+                  {isCompiling && compileStatus && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/80 backdrop-blur-md"
+                    >
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        className="flex flex-col items-center text-center space-y-6 max-w-xs"
+                      >
+                        {/* Animated spinner */}
+                        <div className="relative">
+                          <div className="w-20 h-20 rounded-full border-2 border-primary/20" />
+                          <div className="absolute inset-0 w-20 h-20 rounded-full border-2 border-transparent border-t-primary animate-spin" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            {compileStatus === "queued" ? (
+                              <Layers size={24} className="text-primary" />
+                            ) : (
+                              <Play size={24} className="text-primary fill-primary" />
+                            )}
+                          </div>
+                        </div>
+
+                        {compileStatus === "queued" && (
+                          <>
+                            <div className="space-y-1">
+                              <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
+                                In Queue
+                              </p>
+                              <p className="text-2xl font-black text-white tracking-tight">
+                                Position #{queuePosition}
+                              </p>
+                            </div>
+                            {queueEta > 0 && (
+                              <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10">
+                                <Clock size={14} className="text-primary" />
+                                <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+                                  ~{queueEta}s remaining
+                                </span>
+                              </div>
+                            )}
+                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed">
+                              The build server is processing other documents.<br/>
+                              Your compilation will begin automatically.
+                            </p>
+                          </>
+                        )}
+
+                        {(compileStatus === "processing" || compileStatus === "submitting") && (
+                          <div className="space-y-1">
+                            <p className="text-xs font-black uppercase tracking-[0.2em] text-primary">
+                              {compileStatus === "submitting" ? "Submitting" : "Compiling"}
+                            </p>
+                            <p className="text-sm font-bold text-slate-300">
+                              {compileStatus === "submitting"
+                                ? "Sending to build server..."
+                                : "pdflatex is generating your document..."
+                              }
+                            </p>
+                          </div>
+                        )}
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {pdfUrl ? (
                   <div className="w-full max-w-4xl h-full">
                     <DocumentViewer url={pdfUrl} format="pdf" />

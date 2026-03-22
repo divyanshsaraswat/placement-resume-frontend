@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from "react";
-import { Search, Filter, Eye, CheckCircle, XCircle, Clock, ArrowRight, Loader2, SlidersHorizontal } from "lucide-react";
+import { Search, Filter, Eye, CheckCircle, XCircle, Clock, Loader2, SlidersHorizontal, FileText, Sparkles, ArrowUpRight, Users, TrendingUp, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
@@ -36,7 +36,7 @@ export default function FacultyValidatePage() {
   const [filters, setFilters] = useState({
     years: [] as number[],
     departments: [] as string[],
-    group: undefined as string | undefined, // "engineering" or undefined
+    group: undefined as string | undefined,
   });
 
   const debouncedSearch = useDebounce(search, 500);
@@ -79,280 +79,371 @@ export default function FacultyValidatePage() {
 
   const activeFiltersCount = filters.years.length + filters.departments.length + (filters.group ? 1 : 0);
 
-  const statusColors: Record<string, string> = {
-    approved: "text-emerald-500 bg-emerald-500/10",
-    submitted: "text-amber-500 bg-amber-500/10",
-    rejected: "text-rose-500 bg-rose-500/10",
-    draft: "text-slate-500 bg-slate-500/10",
+  const statusConfig: Record<string, { color: string; bg: string; border: string }> = {
+    approved: { color: "text-emerald-600", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
+    submitted: { color: "text-amber-600", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+    rejected: { color: "text-rose-600", bg: "bg-rose-500/10", border: "border-rose-500/20" },
+    draft: { color: "text-slate-500", bg: "bg-slate-500/10", border: "border-slate-500/20" },
   };
 
+  const statCards = [
+    {
+      label: "Pending Review",
+      value: stats.pending.toString(),
+      icon: Clock,
+      color: "text-amber-500",
+      bg: "bg-amber-500/10",
+      accent: "border-amber-500/20",
+      desc: "Awaiting validation",
+    },
+    {
+      label: "Approved Today",
+      value: stats.approvedToday.toString(),
+      icon: CheckCircle,
+      color: "text-emerald-500",
+      bg: "bg-emerald-500/10",
+      accent: "border-emerald-500/20",
+      desc: "Cleared this session",
+    },
+    {
+      label: "Avg. AI Score",
+      value: stats.avgScore,
+      icon: TrendingUp,
+      color: "text-primary",
+      bg: "bg-primary/10",
+      accent: "border-primary/20",
+      desc: "Across all submissions",
+    },
+    {
+      label: "Flagged",
+      value: stats.flagged.toString(),
+      icon: AlertTriangle,
+      color: "text-rose-500",
+      bg: "bg-rose-500/10",
+      accent: "border-rose-500/20",
+      desc: "Require attention",
+    },
+  ];
+
   return (
-    <div className="max-w-7xl mx-auto space-y-10 py-8">
+    <div className="max-w-7xl mx-auto space-y-6 py-8 px-4">
       {/* Page Header */}
-      <div className="flex flex-col gap-2">
-        <h1 className="text-4xl font-display font-bold text-primary">Validation Queue</h1>
-        <p className="text-slate-500 dark:text-slate-400 font-light text-lg">Review and approve student resumes for the placement season.</p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-primary">
+              {pathname.startsWith('/dashboard/spc') ? 'SPC Panel' : 'Faculty Panel'}
+            </p>
+          </div>
+          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-800 dark:text-white">
+            Validation Queue
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-light">
+            Review and approve student resumes for the placement season.
+          </p>
+        </div>
       </div>
 
-      {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        {[
-          { label: "Pending", value: stats.pending.toString(), icon: Clock, color: "text-amber-500" },
-          { label: "Approved Today", value: stats.approvedToday.toString(), icon: CheckCircle, color: "text-emerald-500" },
-          { label: "Avg. Score", value: stats.avgScore, icon: ArrowRight, color: "text-primary" },
-          { label: "Flagged", value: stats.flagged.toString(), icon: XCircle, color: "text-rose-500" },
-        ].map((stat, i) => (
-          <div key={i} className="nm-flat p-6 rounded-3xl flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-[10px] text-slate-500 dark:text-slate-400 uppercase tracking-widest font-bold">{stat.label}</p>
-              <p className="text-2xl font-display font-bold">{stat.value}</p>
+      {/* Stats Strip */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 border border-slate-100 dark:border-slate-800 rounded-lg overflow-hidden">
+        {statCards.map((stat, i) => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: i * 0.06 }}
+            className={cn(
+              "p-4 sm:p-5 flex flex-col items-center justify-center bg-white dark:bg-slate-900/40 text-center",
+              i === 0 && "border-b border-r lg:border-b-0 border-slate-100 dark:border-slate-800",
+              i === 1 && "border-b lg:border-b-0 lg:border-r border-slate-100 dark:border-slate-800",
+              i === 2 && "border-r border-slate-100 dark:border-slate-800",
+            )}
+          >
+            <div className={cn("inline-flex p-1.5 sm:p-2 rounded-lg mb-2", stat.bg)}>
+              <stat.icon size={14} className={stat.color} strokeWidth={2} />
             </div>
-            <div className={cn("nm-inset p-3 rounded-xl", stat.color)}>
-              <stat.icon size={20} />
-            </div>
-          </div>
+            <p className="text-xl sm:text-2xl font-bold tracking-tight text-slate-800 dark:text-white leading-none">
+              {stat.value}
+            </p>
+            <p className="text-[9px] sm:text-[10px] font-bold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500 mt-1.5">
+              {stat.label}
+            </p>
+          </motion.div>
         ))}
       </div>
 
-      {/* Table Section */}
-      <div className="nm-flat rounded-[3rem] p-8 space-y-8 relative">
-        <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
-          <div className="w-full md:w-96 nm-inset px-6 py-3 rounded-2xl flex items-center gap-4">
-            <Search size={18} className="text-slate-400 dark:text-slate-500" />
-            <input 
-              type="text" 
-              placeholder="Search students, departments..." 
-              className="bg-transparent border-0 border-b border-slate-200 dark:border-slate-800 focus:border-primary outline-none w-full text-sm font-medium transition-all rounded-none placeholder:text-slate-400 dark:placeholder:text-slate-600"
+      {/* Main Content Area */}
+      <div className="rounded-lg bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-slate-800">
+        {/* Toolbar */}
+        <div className="p-4 sm:p-5 border-b border-slate-100 dark:border-slate-800 space-y-3">
+          {/* Search */}
+          <div className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700/50 focus-within:border-primary/40 transition-colors">
+            <Search size={16} className="text-slate-400 shrink-0" />
+            <input
+              type="text"
+              placeholder="Search students, departments..."
+              className="bg-transparent w-full text-sm font-light placeholder:text-slate-400 dark:placeholder:text-slate-600 outline-none border-none focus:ring-0"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex gap-4 relative">
-             <button 
+
+          {/* Action row */}
+          <div className="flex flex-col sm:flex-row items-center gap-3 w-full">
+            <button
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={cn(
-                "nm-convex px-6 py-3 rounded-2xl flex items-center gap-2 text-sm transition-all relative",
-                activeFiltersCount > 0 ? "text-primary nm-inset" : "text-muted-foreground hover:nm-inset"
+                "w-full sm:flex-1 px-4 py-2.5 rounded-lg flex items-center justify-center gap-2 text-[11px] font-bold uppercase tracking-wider transition-all border whitespace-nowrap",
+                activeFiltersCount > 0
+                  ? "border-primary/30 bg-primary/5 text-primary"
+                  : "border-slate-200 dark:border-slate-700 text-slate-500 hover:border-primary/30 hover:text-primary"
               )}
-             >
-               <Filter size={18} />
-               <span>Filters</span>
-               {activeFiltersCount > 0 && (
-                 <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white text-[8px] flex items-center justify-center rounded-full shadow-lg">
-                   {activeFiltersCount}
-                 </span>
-               )}
-             </button>
-             
-             {/* Filter Dialog */}
-              <AnimatePresence>
-                {isFilterOpen && (
-                  <>
-                    <motion.div 
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      onClick={() => setIsFilterOpen(false)}
-                      className="fixed inset-0 z-40 bg-black/5"
-                    />
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute top-16 right-0 w-80 nm-flat bg-background rounded-[2rem] p-6 z-50 space-y-6 shadow-2xl overflow-hidden"
-                    >
-                      <div className="flex items-center justify-between border-b border-border/10 pb-4">
-                        <div className="flex items-center gap-2">
-                          <SlidersHorizontal size={14} className="text-primary" />
-                          <span className="text-xs font-bold uppercase tracking-widest">Filters</span>
-                        </div>
-                        <div className="flex nm-inset p-1 rounded-xl">
-                          <button 
-                            onClick={() => setActiveTab("year")}
-                            className={cn(
-                              "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                              activeTab === "year" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-primary"
-                            )}
-                          >
-                            Year
-                          </button>
-                          <button 
-                            onClick={() => setActiveTab("branch")}
-                            className={cn(
-                              "px-4 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all",
-                              activeTab === "branch" ? "bg-primary text-primary-foreground shadow-sm" : "text-muted-foreground hover:text-primary"
-                            )}
-                          >
-                            Branch
-                          </button>
-                        </div>
-                      </div>
+            >
+              <Filter size={14} />
+              <span>Filters</span>
+              {activeFiltersCount > 0 && (
+                <span className="w-5 h-5 bg-primary text-white text-[9px] font-black flex items-center justify-center rounded-full shrink-0">
+                  {activeFiltersCount}
+                </span>
+              )}
+            </button>
 
-                      <div className="min-height-[240px]">
-                        <AnimatePresence mode="wait">
-                          {activeTab === "year" ? (
-                            <motion.div 
-                              key="year-tab"
-                              initial={{ opacity: 0, x: -10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: 10 }}
-                              className="space-y-4"
-                            >
-                              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4 flex justify-between">
-                                <span>Select Academic Years</span>
-                                {filters.years.length > 0 && <span className="text-primary">{filters.years.length} selected</span>}
-                              </p>
-                              <div className="grid grid-cols-2 gap-3">
-                                {[1, 2, 3, 4, 5].map(y => (
-                                  <button 
-                                    key={y}
-                                    onClick={() => setFilters(f => ({ 
-                                      ...f, 
-                                      years: f.years.includes(y) ? f.years.filter(year => year !== y) : [...f.years, y] 
-                                    }))}
-                                    className={cn(
-                                      "py-4 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-1",
-                                      filters.years.includes(y) ? "nm-inset text-primary" : "nm-convex text-muted-foreground hover:text-primary"
-                                    )}
-                                  >
-                                    <span className="text-lg">{y}</span>
-                                    <span>{y === 1 ? "1st" : y === 2 ? "2nd" : y === 3 ? "3rd" : y === 4 ? "4th" : "5th"} Year</span>
-                                  </button>
-                                ))}
-                              </div>
-                            </motion.div>
-                          ) : (
-                            <motion.div 
-                              key="branch-tab"
-                              initial={{ opacity: 0, x: 10 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              exit={{ opacity: 0, x: -10 }}
-                              className="space-y-3 max-h-[250px] overflow-y-auto pr-2 custom-scrollbar"
-                            >
-                              <p className="text-[10px] uppercase tracking-widest font-bold text-muted-foreground mb-4 flex justify-between">
-                                <span>Select Departments</span>
-                                {filters.departments.length > 0 && <span className="text-primary">{filters.departments.length} selected</span>}
-                              </p>
-                              <div className="space-y-2">
-                                {DEPARTMENTS.map(dept => (
-                                  <button 
-                                    key={dept}
-                                    onClick={() => setFilters(f => ({ 
-                                      ...f, 
-                                      departments: f.departments.includes(dept) ? f.departments.filter(d => d !== dept) : [...f.departments, dept] 
-                                    }))}
-                                    className={cn(
-                                      "w-full px-4 py-3 rounded-xl text-[10px] text-left font-bold transition-all",
-                                      filters.departments.includes(dept) ? "nm-inset text-primary" : "nm-convex text-muted-foreground hover:text-primary"
-                                    )}
-                                  >
-                                    {dept}
-                                  </button>
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
-
-                      <div className="flex justify-between items-center pt-4 border-t border-border/10">
-                        <button 
-                          onClick={() => setFilters({ years: [], departments: [], group: undefined })}
-                          className="text-[10px] text-muted-foreground hover:text-primary font-bold uppercase tracking-wider"
-                        >
-                          Reset
-                        </button>
-                        <button 
-                          onClick={() => setIsFilterOpen(false)}
-                          className="nm-primary px-8 py-2.5 rounded-xl text-[10px] font-bold uppercase tracking-wider shadow-lg"
-                        >
-                          Apply
-                        </button>
-                      </div>
-                    </motion.div>
-                  </>
-                )}
-              </AnimatePresence>
-
-             <button className="nm-primary px-8 rounded-2xl text-xs sm:text-sm transition-all h-12 shadow-lg">
-               Bulk Approve
-             </button>
+            <button className="w-full sm:flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 whitespace-nowrap">
+              Bulk Approve
+            </button>
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="h-64 flex flex-col items-center justify-center gap-4">
-            <Loader2 className="animate-spin text-slate-200" size={32} />
-            <p className="text-xs text-slate-300 font-light">Loading documents...</p>
-          </div>
-        ) : resumes.length === 0 ? (
-          <div className="h-64 flex flex-col items-center justify-center gap-4 opacity-40">
-            <Clock size={48} strokeWidth={0.5} />
-            <p className="text-sm font-light">No resumes awaiting validation</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-separate border-spacing-y-4">
-              <thead>
-                <tr className="text-slate-500/60 dark:text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
-                  <th className="px-6 py-2">Student</th>
-                  <th className="px-6 py-2">Details</th>
-                  <th className="px-6 py-2 text-center">AI Score</th>
-                  <th className="px-6 py-2">Status</th>
-                  <th className="px-6 py-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {resumes.map((item, i) => (
-                  <motion.tr 
-                    key={item.id}
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="nm-flat bg-background hover:scale-[1.01] transition-transform cursor-pointer group"
+        {/* Filter Dropdown — fixed position so it doesn't overflow the card */}
+        <AnimatePresence>
+          {isFilterOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setIsFilterOpen(false)}
+                className="fixed inset-0 z-40 bg-black/20 backdrop-blur-[2px]"
+              />
+              <motion.div
+                initial={{ opacity: 0, y: 10, scale: 0.96 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 10, scale: 0.96 }}
+                transition={{ type: "spring", duration: 0.35, bounce: 0.2 }}
+                className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(90vw,22rem)] bg-white dark:bg-slate-900 rounded-2xl p-5 z-50 space-y-5 shadow-[0_20px_50px_rgba(0,0,0,0.2)] border border-slate-100 dark:border-slate-800"
                   >
-                    <td className="px-6 py-5 rounded-l-[1.5rem]">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full nm-inset flex items-center justify-center text-primary font-bold text-xs">
-                          {item.studentName?.split(' ').map((n: string) => n[0]).join('')}
-                        </div>
-                        <div>
-                          <p className="font-semibold text-sm text-slate-700 dark:text-white">{item.studentName}</p>
-                          <p className="text-[10px] text-muted-foreground dark:text-slate-400">{item.studentEmail}</p>
-                        </div>
+                    {/* Filter header */}
+                    <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
+                      <div className="flex items-center gap-2">
+                        <SlidersHorizontal size={13} className="text-primary" />
+                        <span className="text-xs font-bold uppercase tracking-widest text-slate-800 dark:text-white">Filters</span>
                       </div>
-                    </td>
-                    <td className="px-6 py-5">
-                      <div className="space-y-1">
-                        <p className="text-xs font-medium text-slate-700 dark:text-white">{item.type} Resume</p>
-                        <p className="text-[10px] text-muted-foreground dark:text-slate-400">{item.department}</p>
-                      </div>
-                    </td>
-                    <td className="px-6 py-5 text-center">
-                      <span className="text-lg font-display font-medium text-primary dark:text-blue-400">{item.score}%</span>
-                    </td>
-                    <td className="px-6 py-5 text-sm">
-                      <span className={cn(
-                        "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                        statusColors[item.status]
-                      )}>
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 text-right rounded-r-[1.5rem]">
-                      <div className="flex justify-end gap-3 translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all">
-                        <Link href={`${basePath}/${item.id}`}>
-                          <button className="nm-convex p-2 rounded-xl text-primary hover:nm-inset transition-all" title="Review">
-                            <Eye size={18} />
-                          </button>
-                        </Link>
-                        <button className="nm-convex p-2 rounded-xl text-emerald-500 hover:nm-inset transition-all" title="Quick Approve">
-                          <CheckCircle size={18} />
+                      {/* Tab Toggle */}
+                      <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+                        <button
+                          onClick={() => setActiveTab("year")}
+                          className={cn(
+                            "px-3.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all",
+                            activeTab === "year"
+                              ? "bg-white dark:bg-slate-700 text-primary shadow-sm"
+                              : "text-slate-400 hover:text-slate-600"
+                          )}
+                        >
+                          Year
+                        </button>
+                        <button
+                          onClick={() => setActiveTab("branch")}
+                          className={cn(
+                            "px-3.5 py-1.5 rounded-md text-[10px] font-bold uppercase tracking-wider transition-all",
+                            activeTab === "branch"
+                              ? "bg-white dark:bg-slate-700 text-primary shadow-sm"
+                              : "text-slate-400 hover:text-slate-600"
+                          )}
+                        >
+                          Branch
                         </button>
                       </div>
-                    </td>
-                  </motion.tr>
-                ))}
+                    </div>
+
+                    {/* Filter content */}
+                    <AnimatePresence mode="wait">
+                      {activeTab === "year" ? (
+                        <motion.div
+                          key="year-tab"
+                          initial={{ opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: 10 }}
+                          className="space-y-3"
+                        >
+                          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 flex justify-between">
+                            <span>Academic Years</span>
+                            {filters.years.length > 0 && <span className="text-primary">{filters.years.length} selected</span>}
+                          </p>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[1, 2, 3, 4, 5].map(y => (
+                              <button
+                                key={y}
+                                onClick={() => setFilters(f => ({
+                                  ...f,
+                                  years: f.years.includes(y) ? f.years.filter(year => year !== y) : [...f.years, y]
+                                }))}
+                                className={cn(
+                                  "py-3 rounded-lg text-xs font-bold transition-all flex flex-col items-center gap-0.5",
+                                  filters.years.includes(y)
+                                    ? "bg-primary/10 text-primary border border-primary/30"
+                                    : "bg-slate-50 dark:bg-slate-800 text-slate-500 border border-transparent hover:border-slate-200 dark:hover:border-slate-700"
+                                )}
+                              >
+                                <span className="text-lg font-bold">{y}</span>
+                                <span className="text-[9px]">{y === 1 ? "1st" : y === 2 ? "2nd" : y === 3 ? "3rd" : y === 4 ? "4th" : "5th"} Year</span>
+                              </button>
+                            ))}
+                          </div>
+                        </motion.div>
+                      ) : (
+                        <motion.div
+                          key="branch-tab"
+                          initial={{ opacity: 0, x: 10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, x: -10 }}
+                          className="space-y-2 max-h-[250px] overflow-y-auto pr-1"
+                        >
+                          <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400 flex justify-between mb-3">
+                            <span>Departments</span>
+                            {filters.departments.length > 0 && <span className="text-primary">{filters.departments.length} selected</span>}
+                          </p>
+                          {DEPARTMENTS.map(dept => (
+                            <button
+                              key={dept}
+                              onClick={() => setFilters(f => ({
+                                ...f,
+                                departments: f.departments.includes(dept) ? f.departments.filter(d => d !== dept) : [...f.departments, dept]
+                              }))}
+                              className={cn(
+                                "w-full px-4 py-3 rounded-lg text-[11px] text-left font-semibold transition-all border",
+                                filters.departments.includes(dept)
+                                  ? "bg-primary/5 text-primary border-primary/20"
+                                  : "text-slate-600 dark:text-slate-400 border-transparent hover:bg-slate-50 dark:hover:bg-slate-800"
+                              )}
+                            >
+                              {dept}
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+
+                    {/* Filter footer */}
+                    <div className="flex justify-between items-center pt-4 border-t border-slate-100 dark:border-slate-800">
+                      <button
+                        onClick={() => setFilters({ years: [], departments: [], group: undefined })}
+                        className="text-[10px] text-slate-400 hover:text-rose-500 font-bold uppercase tracking-wider transition-colors"
+                      >
+                        Clear All
+                      </button>
+                      <button
+                        onClick={() => setIsFilterOpen(false)}
+                        className="px-6 py-2 bg-primary text-white rounded-lg text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all"
+                      >
+                        Apply
+                      </button>
+                    </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Table / Content */}
+        {isLoading ? (
+          <div className="h-72 flex flex-col items-center justify-center gap-4">
+            <div className="relative">
+              <div className="w-12 h-12 rounded-full border-2 border-slate-100 dark:border-slate-800" />
+              <div className="absolute inset-0 w-12 h-12 rounded-full border-2 border-transparent border-t-primary animate-spin" />
+            </div>
+            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Loading queue...</p>
+          </div>
+        ) : resumes.length === 0 ? (
+          <div className="h-72 flex flex-col items-center justify-center gap-5">
+            <div className="w-20 h-20 rounded-lg bg-slate-50 dark:bg-slate-800/50 flex items-center justify-center">
+              <FileText size={32} strokeWidth={1} className="text-slate-300 dark:text-slate-600" />
+            </div>
+            <div className="text-center space-y-1.5">
+              <p className="text-sm font-semibold text-slate-600 dark:text-slate-300">No resumes awaiting validation</p>
+              <p className="text-xs text-slate-400 dark:text-slate-500 font-light">
+                All caught up! Check back later for new submissions.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-b-lg">
+            <table className="w-full text-left min-w-[640px]">
+              <thead>
+                <tr className="border-b border-slate-100 dark:border-slate-800">
+                  <th className="px-5 py-4 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">Student</th>
+                  <th className="px-5 py-4 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">Details</th>
+                  <th className="px-5 py-4 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold text-center">AI Score</th>
+                  <th className="px-5 py-4 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">Status</th>
+                  <th className="px-5 py-4 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 dark:divide-slate-800/50">
+                {resumes.map((item, i) => {
+                  const sc = statusConfig[item.status] || statusConfig.draft;
+                  return (
+                    <motion.tr
+                      key={item.id}
+                      initial={{ opacity: 0, y: 8 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.04 }}
+                      className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors cursor-pointer"
+                    >
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3">
+                          <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-[11px] shrink-0">
+                            {item.studentName?.split(' ').map((n: string) => n[0]).join('').slice(0, 2)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="font-semibold text-sm text-slate-800 dark:text-white truncate">{item.studentName}</p>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 truncate">{item.studentEmail}</p>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="space-y-0.5">
+                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-200">{item.type} Resume</p>
+                          <p className="text-[11px] text-slate-400 dark:text-slate-500">{item.department}</p>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/10">
+                          <Sparkles size={12} className="text-primary" />
+                          <span className="text-sm font-bold text-primary">{item.score}%</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <span className={cn(
+                          "px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-[0.15em] border whitespace-nowrap",
+                          sc.bg, sc.color, sc.border
+                        )}>
+                          {item.status}
+                        </span>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 md:translate-x-2 md:group-hover:translate-x-0 transition-all">
+                          <Link href={`${basePath}/${item.id}`}>
+                            <button className="p-2 rounded-lg text-primary bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all" title="Review">
+                              <Eye size={15} />
+                            </button>
+                          </Link>
+                          <button className="p-2 rounded-lg text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 transition-all" title="Quick Approve">
+                            <CheckCircle size={15} />
+                          </button>
+                        </div>
+                      </td>
+                    </motion.tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

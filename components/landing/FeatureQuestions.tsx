@@ -29,9 +29,9 @@ const faqs = [
 
 export function FeatureQuestions() {
   return (
-    <section className="py-48 px-6">
+    <section className="py-20 md:py-28 px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="flex flex-col lg:flex-row gap-24 items-start">
+        <div className="flex flex-col lg:flex-row gap-16 md:gap-24 items-start">
           <div className="lg:w-1/3 space-y-8 lg:sticky lg:top-32">
             <h2 className="text-4xl md:text-5xl font-semibold tracking-tight text-slate-800 dark:text-slate-100 leading-tight">
               System <br />

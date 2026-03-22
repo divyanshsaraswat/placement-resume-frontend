@@ -45,9 +45,9 @@ const features = [
 
 export function Features() {
   return (
-    <section id="features" className="py-32 px-6">
+    <section id="features" className="py-20 md:py-28 px-6">
       <div className="max-w-6xl mx-auto">
-        <div className="mb-32">
+        <div className="mb-16 md:mb-20">
           <motion.div
             initial={{ opacity: 0 }}
             whileInView={{ opacity: 1 }}
@@ -64,7 +64,7 @@ export function Features() {
           </motion.div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-20 gap-y-24">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-12 gap-y-16">
           {features.map((feature, i) => (
             <motion.div
               key={i}

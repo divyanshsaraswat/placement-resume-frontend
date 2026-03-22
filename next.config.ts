@@ -12,6 +12,10 @@ const nextConfig: NextConfig = {
         source: "/public/:path*",
         destination: `${process.env.API_ENDPOINT || "http://localhost:8000"}/public/:path*`,
       },
+      {
+        source: "/ws/:path*",
+        destination: `${process.env.API_ENDPOINT || "http://localhost:8000"}/ws/:path*`,
+      },
     ];
   },
 };

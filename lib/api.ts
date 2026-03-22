@@ -131,6 +131,21 @@ export const resumeApi = {
     const response = await api.post("/latex/compile", { latex_code: latex }, { signal });
     return response.data.pdf_url;
   },
+  compileAsync: async (latex: string, signal?: AbortSignal) => {
+    const response = await api.post("/latex/compile-async", { latex_code: latex }, { signal });
+    return response.data as { job_id: string; queue_position: number; eta_seconds: number };
+  },
+  getCompileStatus: async (jobId: string, signal?: AbortSignal) => {
+    const response = await api.get(`/latex/status/${jobId}`, { signal });
+    return response.data as {
+      status: string;
+      position?: number;
+      eta_seconds?: number;
+      success?: boolean;
+      error?: string;
+      pdf_url?: string;
+    };
+  },
   cleanupLatexJob: async (jobId: string, signal?: AbortSignal) => {
     const response = await api.delete(`/latex/${jobId}`, { signal });
     return response.data;
