@@ -6,7 +6,7 @@ import { HelpCircle, Sparkles, MessageCircle, Zap } from "lucide-react";
 
 const faqs = [
   {
-    question: "How does the Matrix matching work?",
+    question: "How does the SYSUME matching work?",
     answer: "Our AI analysis engine compares your resume against target job descriptions using 50+ vector parameters, giving you a real-time 'Matching Index' used by MNIT placement cell.",
     icon: Zap
   },
@@ -29,7 +29,7 @@ const faqs = [
 
 export function FeatureQuestions() {
   return (
-    <section className="py-20 md:py-28 px-6">
+    <section id="security" className="py-20 md:py-28 px-6">
       <div className="max-w-6xl mx-auto">
         <div className="flex flex-col lg:flex-row gap-16 md:gap-24 items-start">
           <div className="lg:w-1/3 space-y-8 lg:sticky lg:top-32">

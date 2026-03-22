@@ -6,7 +6,8 @@ import { useAuth } from "@/context/auth-context";
 import { useSearchParams } from "next/navigation";
 import { Suspense, useEffect } from "react";
 import Link from "next/link";
-import { Sparkles, ShieldCheck, ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/Logo";
+import { ShieldCheck, ArrowLeft } from "lucide-react";
 
 function LoginContent() {
   const { loginWithGoogle } = useAuth();
@@ -63,12 +64,9 @@ function LoginContent() {
         animate={{ opacity: 1, y: 0 }}
         className="max-w-md w-full space-y-8"
       >
-        <div className="flex flex-col items-center text-center space-y-4">
-          <div className="bg-primary/10 p-4 rounded-2xl text-primary mb-2">
-            <Sparkles size={40} strokeWidth={1.5} />
-          </div>
-          <h1 className="text-4xl font-bold tracking-tight text-foreground font-display">MNIT Intel</h1>
-          <p className="text-muted-foreground font-light text-sm">Institutional Placement ERP Integration</p>
+        <div className="flex flex-col items-center text-center space-y-6 mb-2">
+          <Logo className="h-16 w-auto" />
+          <p className="text-muted-foreground font-light text-sm tracking-wide">Institutional Placement ERP Integration</p>
         </div>
 
         <div className="glass p-10 rounded-[2.5rem] shadow-xl space-y-8 flex flex-col items-center text-center">

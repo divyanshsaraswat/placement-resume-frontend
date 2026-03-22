@@ -66,7 +66,7 @@ export function AIDrawer({
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: "ai", 
-      content: `Hello! I'm your institutional AI companion. How can I help refine your ${format === 'latex' ? 'LaTeX ' : ''}resume today?`.replace('  ', ' ')
+      content: `Hello! I'm Triansh, your AI companion by Scasys. How can I help refine your ${format === 'latex' ? 'LaTeX ' : ''}resume today?`.replace('  ', ' ')
     }
   ]);
   const [input, setInput] = useState("");
@@ -160,7 +160,7 @@ export function AIDrawer({
                   <Sparkles size={18} className="md:w-5 md:h-5" strokeWidth={1.5} />
                 </div>
                 <div>
-                  <h3 className="text-base md:text-lg font-bold tracking-tight">Institutional AI Assistant</h3>
+                   <h3 className="text-base md:text-lg font-bold tracking-tight">Triansh By Scasys AI Assistant</h3>
                   <div className="flex items-center gap-2 mt-0.5">
                     <div className={cn(
                       "w-1.5 h-1.5 rounded-full animate-pulse",

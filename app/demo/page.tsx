@@ -23,7 +23,7 @@ export default function DemoPage() {
             </Link>
             <h1 className="text-5xl md:text-7xl font-semibold tracking-tight text-slate-800 dark:text-slate-100 leading-tight">
               Experience the <br />
-              <span className="text-primary/70">Matrix Workflow.</span>
+              <span className="text-primary/70">SYSUME Workflow.</span>
             </h1>
             <p className="max-w-xl text-lg text-slate-400 font-light leading-relaxed">
               A brief overview of the AI-driven placement ecosystem engineered for MNIT Jaipur.

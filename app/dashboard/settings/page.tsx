@@ -330,12 +330,12 @@ export default function SettingsPage() {
             </div>
           </motion.section>
 
-          {/* Section: Institutional AI (Unified for all roles) */}
+          {/* Section: Triansh AI (Unified for all roles) */}
           <motion.section variants={itemVariants} className="space-y-6 pt-4">
             <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
               <div className="flex items-center gap-3">
                 <Sparkles size={18} className="text-primary" strokeWidth={1.5} />
-                <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100">Institutional AI Hub</h2>
+                <h2 className="text-lg font-bold tracking-tight text-slate-800 dark:text-slate-100">Triansh AI Intelligence Hub</h2>
               </div>
               <div className="px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 flex items-center gap-2">
                 <Cpu size={12} className="text-primary" />
@@ -374,7 +374,7 @@ export default function SettingsPage() {
                         )}>
                           {model.split('/').pop()?.toUpperCase()}
                         </p>
-                        <p className="text-[10px] text-slate-400 font-medium truncate">Institutional AI Node</p>
+                        <p className="text-[10px] text-slate-400 font-medium truncate">Triansh AI Node</p>
                       </div>
                       <div className={cn(
                         "px-2.5 py-1 rounded-lg text-[9px] font-bold uppercase tracking-tight whitespace-nowrap",

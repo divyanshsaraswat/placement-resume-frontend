@@ -1,5 +1,6 @@
 "use client";
-import { Github, Twitter, Linkedin, Sparkles, ArrowRight } from "lucide-react";
+import { Github, Twitter, Linkedin, ArrowRight } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import Link from "next/link";
 
 export function Footer() {
@@ -15,10 +16,7 @@ export function Footer() {
           {/* Brand Column */}
           <div className="md:col-span-5 space-y-8">
             <div className="flex items-center gap-3 text-white">
-              <div className="text-primary">
-                <Sparkles size={28} strokeWidth={1.5} />
-              </div>
-              <span className="text-2xl font-bold tracking-tighter">Matrix</span>
+              <Logo className="h-10 w-auto" forceWhite />
             </div>
             <p className="text-sm sm:text-base text-slate-500 font-medium leading-relaxed max-w-sm">
               Institutional document intelligence engine for student recruitment and technical authoring. 
@@ -64,7 +62,7 @@ export function Footer() {
         <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row justify-between items-center gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-8 order-2 sm:order-1">
             <p className="text-[12px] font-medium text-slate-600">
-              © MNIT Matrix 2026. All rights reserved.
+              © 2026 Scasys Technologies. All rights reserved.
             </p>
           </div>
 

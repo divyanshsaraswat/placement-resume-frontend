@@ -5,7 +5,8 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { dashboardNavItems } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-import { Sparkles, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Logo } from "@/components/Logo";
+import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -53,18 +54,9 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       {/* Sidebar Header */}
       <div className={cn("flex items-center justify-between", isCollapsed ? "p-6" : "p-8")}>
         <div className={cn("flex items-center gap-3 text-primary w-full", isCollapsed && "justify-center")}>
-          <div className="bg-primary/10 p-2 rounded-xl shrink-0">
-            <Sparkles size={20} strokeWidth={1} />
-          </div>
-          {!isCollapsed && (
-            <motion.span 
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="font-semibold tracking-tight text-xl text-foreground"
-            >
-              Matrix
-            </motion.span>
-          )}
+          <Link href="/dashboard" className="flex items-center gap-3 px-2 group/logo">
+            <Logo className="h-12 w-auto" iconOnly={isCollapsed} />
+          </Link>
         </div>
 
         {/* Mobile Close Button */}

@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Sparkles } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 export function Header() {
@@ -14,15 +14,12 @@ export function Header() {
       className="fixed top-6 left-1/2 -translate-x-1/2 z-50 w-[95%] max-w-7xl px-4"
     >
       <div className="px-4 md:px-8 py-3 flex items-center justify-between gap-2 md:gap-4 border border-slate-50 dark:border-slate-900 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-md rounded-full">
-        <div className="flex items-center gap-2 group cursor-pointer">
-          <div className="text-primary">
-            <Sparkles size={18} strokeWidth={1} />
-          </div>
-          <span className="text-sm font-semibold tracking-tight text-slate-800 dark:text-slate-100 uppercase tracking-[0.2em]">Matrix</span>
-        </div>
+        <Link href="/" className="flex items-center gap-2 group cursor-pointer">
+          <Logo className="h-8 w-auto" />
+        </Link>
 
         <nav className="hidden md:flex items-center gap-8">
-          {["Platform", "Features", "Security", "Institutional"].map((item) => (
+          {["Platform", "Features",  "Institutional","Security"].map((item) => (
             <Link 
               key={item}
               href={`#${item.toLowerCase()}`} 

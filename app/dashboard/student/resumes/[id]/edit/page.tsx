@@ -424,7 +424,7 @@ export default function ResumeEditorPage() {
         setAiError("⚠️ Institutional Rate Limit Reached: Your hourly LLM credits have been exhausted. Refills happen every 60 minutes.");
         toast.error("Insufficient credits for AI analysis");
       } else {
-        setAiError("Institutional AI node is temporarily unreachable. Please ensure you're connected to the campus network.");
+        setAiError("Triansh AI node is temporarily unreachable. Please ensure you're connected to the campus network.");
       }
     } finally {
       setIsAnalyzing(false);

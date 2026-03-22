@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Matrix | AI-Powered Institutional Intelligence",
-  description: "Advanced placement management system with AI-powered resume enhancement, secure LaTeX editing, and role-based workflows for MNIT.",
-  keywords: ["Matrix", "Placement ERP", "AI Resume", "LaTeX Editor", "MNIT", "Resume Intelligence"],
+  title: "SYSUME | AI-Powered Institutional Intelligence",
+  description: "Advanced placement management system with AI-powered resume enhancement, secure LaTeX editing, and role-based workflows for MNIT by Scasys Technologies.",
+  keywords: ["SYSUME", "Scasys Technologies", "Placement ERP", "AI Resume", "LaTeX Editor", "MNIT", "Resume Intelligence"],
 };
 
 import { ThemeProvider } from "@/components/theme-provider";

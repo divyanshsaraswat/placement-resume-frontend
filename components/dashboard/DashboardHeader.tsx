@@ -3,7 +3,8 @@
 import { useAuth } from "@/context/auth-context";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { LogOut, Bell, Search, User, Menu, Settings, ChevronRight, Sparkles, MessageSquare, Sun, Moon, Send, Cpu, RotateCw } from "lucide-react";
+import { LogOut, Bell, Search, User, Menu, Settings, ChevronRight, MessageSquare, Sun, Moon, Send, Cpu, RotateCw, Sparkles } from "lucide-react";
+import { Logo } from "@/components/Logo";
 import { useTheme } from "next-themes";
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useRef, useEffect } from "react";
@@ -27,6 +28,7 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [isRefreshingCredits, setIsRefreshingCredits] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   const notificationRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
@@ -152,12 +154,9 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
             <Menu size={20} strokeWidth={1.5} />
           </button>
         )}
-        <div className="flex items-center gap-2.5 lg:hidden">
-          <div className="bg-primary/10 p-1.5 rounded-lg">
-            <Sparkles size={16} strokeWidth={1.5} className="text-primary" />
-          </div>
-          <span className="font-semibold tracking-tight text-base text-foreground">Matrix</span>
-        </div>
+        <Link href="/dashboard" className="flex items-center gap-2.5 lg:hidden">
+          <Logo className="h-8 w-auto" />
+        </Link>
       </div>
 
       <div className="flex items-center gap-2 md:gap-4">
@@ -310,8 +309,13 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                 <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.1em] mt-0.5">{user?.role || 'Visitor'}</p>
               </div>
               <div className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 shadow-sm relative group-hover:scale-105 transition-transform duration-300">
-                 {user?.picture || user?.avatar ? (
-                   <img src={user.picture || user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                 {(user?.picture || user?.avatar) && !imageError ? (
+                   <img 
+                    src={user.picture || user.avatar} 
+                    alt={user?.name || 'User'} 
+                    className="w-full h-full object-cover" 
+                    onError={() => setImageError(true)}
+                   />
                  ) : (
                    <div className="w-full h-full flex items-center justify-center bg-white dark:bg-slate-950">
                       <User size={20} strokeWidth={1.5} className="text-primary" />
@@ -332,8 +336,13 @@ export function DashboardHeader({ onMenuClick }: DashboardHeaderProps) {
                 <div className="p-3 mb-2 hidden max-sm:block border-b border-slate-50 dark:border-slate-800">
                   <div className="flex items-center gap-3 mb-2">
                     <div className="w-8 h-8 rounded-full overflow-hidden border border-slate-100 dark:border-slate-800">
-                      {user?.picture || user?.avatar ? (
-                        <img src={user.picture || user.avatar} alt={user?.name} className="w-full h-full object-cover" />
+                      {(user?.picture || user?.avatar) && !imageError ? (
+                        <img 
+                          src={user.picture || user.avatar} 
+                          alt={user?.name || 'User'} 
+                          className="w-full h-full object-cover" 
+                          onError={() => setImageError(true)}
+                        />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-slate-50 dark:bg-slate-900">
                            <User size={14} className="text-primary" />

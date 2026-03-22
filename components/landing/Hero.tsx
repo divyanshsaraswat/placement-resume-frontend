@@ -29,7 +29,7 @@ export function Hero() {
   const dashboardPath = "dashboard.webp"; // Generated path
 
   return (
-    <section className="relative min-h-screen pt-32 sm:pt-40 pb-20 flex flex-col justify-start items-center overflow-hidden">
+    <section id="platform" className="relative min-h-screen pt-32 sm:pt-40 pb-20 flex flex-col justify-start items-center overflow-hidden">
       <div className="container mx-auto px-4 relative z-10">
         <motion.div
           variants={containerVariants}

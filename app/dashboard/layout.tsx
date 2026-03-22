@@ -33,7 +33,7 @@ export default function DashboardLayout({
           className="flex flex-col items-center gap-4"
         >
           <div className="w-1.5 h-1.5 bg-primary rounded-full" />
-          <p className="text-[10px] text-slate-400 font-light uppercase tracking-[0.2em]">Matrix</p>
+          <p className="text-[10px] text-slate-400 font-light uppercase tracking-[0.2em]">SYSUME</p>
         </motion.div>
       </div>
     );
