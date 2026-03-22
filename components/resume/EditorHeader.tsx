@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useAuth } from "@/context/auth-context";
 import { 
   ChevronLeft, 
   Code2, 
@@ -46,6 +47,7 @@ export function EditorHeader({
   onSubmit,
   isSubmitting
 }: EditorHeaderProps) {
+  const { user } = useAuth();
   return (
     <div className="h-16 border-b border-border bg-background flex items-center justify-between px-3 md:px-6 z-50">
       {/* Left Area: Project Title & Back Button */}
@@ -127,10 +129,16 @@ export function EditorHeader({
             </button>
             <button 
               onClick={onAIOpen}
-              className="flex items-center justify-center sm:gap-2 p-2 sm:px-4 sm:py-2 rounded-xl bg-primary/10 text-primary text-xs font-bold hover:bg-primary/20 transition-all border border-primary/20"
-              title="AI Review"
+              disabled={(user?.llmCredits !== undefined && user.llmCredits <= 0)}
+              className={cn(
+                "flex items-center justify-center sm:gap-2 p-2 sm:px-4 sm:py-2 rounded-xl text-xs font-bold transition-all border",
+                (user?.llmCredits !== undefined && user.llmCredits <= 0)
+                  ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
+                  : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
+              )}
+              title={(user?.llmCredits !== undefined && user.llmCredits <= 0) ? "Insufficient credits" : "AI Review"}
             >
-              <Sparkles size={14} />
+              <Sparkles size={14} className={cn((user?.llmCredits !== undefined && user.llmCredits <= 0) ? "opacity-50" : "animate-pulse")} />
               <span className="hidden sm:inline">AI Review</span>
             </button>
             <button 

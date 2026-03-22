@@ -9,6 +9,7 @@ import { resumeApi } from "@/lib/api";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
+import { useAuth } from "@/context/auth-context";
 
 function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = React.useState(false);
@@ -61,6 +62,7 @@ export function AIDrawer({
   resumeContent,
   format = "latex"
 }: AIDrawerProps) {
+  const { user, refreshUser } = useAuth();
   const [messages, setMessages] = useState<Message[]>([
     { 
       role: "ai", 
@@ -115,6 +117,9 @@ export function AIDrawer({
           return newMsgs;
         });
       }, resumeContent, format);
+      
+      // Refresh user to sync credit count after successful interaction
+      refreshUser();
     } catch (err: any) {
       let errorMsg = "I encountered an error while processing your request. Please try again or check your connectivity.";
       if (err.response?.status === 402) {
@@ -294,16 +299,33 @@ export function AIDrawer({
                           value={input}
                           onChange={(e) => setInput(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                          placeholder="Ask anything about your resume standards..."
-                          className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2.5 md:py-3 outline-none"
+                          disabled={(user?.llmCredits !== undefined && user.llmCredits <= 0)}
+                          placeholder={(user?.llmCredits !== undefined && user.llmCredits <= 0) ? "Credits exhausted..." : "Ask anything about your resume standards..."}
+                          className="flex-1 bg-transparent border-none focus:ring-0 text-sm py-2.5 md:py-3 outline-none disabled:opacity-50"
                         />
                         <button 
                           onClick={handleSend}
-                          className="w-9 h-9 md:w-10 md:h-10 rounded-full bg-primary text-white flex items-center justify-center hover:scale-105 transition-transform shadow-lg shadow-primary/20"
+                          disabled={isLoading || !input.trim() || (user?.llmCredits !== undefined && user.llmCredits <= 0)}
+                          className={cn(
+                            "w-9 h-9 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all shadow-lg shadow-primary/20",
+                            (isLoading || !input.trim() || (user?.llmCredits !== undefined && user.llmCredits <= 0))
+                              ? "bg-slate-300 text-slate-500 cursor-not-allowed shadow-none" 
+                              : "bg-primary text-white hover:scale-105 active:scale-95"
+                          )}
+                          title={(user?.llmCredits !== undefined && user.llmCredits <= 0) ? "Insufficient credits" : "Send message"}
                         >
                           <Send size={15} />
                         </button>
                      </div>
+                     {(user?.llmCredits !== undefined && user.llmCredits <= 0) && (
+                        <motion.p 
+                          initial={{ opacity: 0, y: 5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="text-[10px] text-rose-500 font-bold uppercase tracking-widest mt-3 px-2 text-center"
+                        >
+                          ⚠️ Hourly LLM Credits Exhausted. Refills happen every 60 minutes.
+                        </motion.p>
+                      )}
                    </div>
                </div>
 

@@ -46,9 +46,6 @@ export default function ResumeReviewPage() {
 
         const latestVersion = data.versions?.[data.versions.length - 1];
         if (latestVersion) {
-          if (latestVersion.ai_score) {
-            setLiveAiScore(latestVersion.ai_score);
-          }
           if (latestVersion.reviewer_remark) {
             setRemark(latestVersion.reviewer_remark);
           }
@@ -107,7 +104,7 @@ export default function ResumeReviewPage() {
 
   const latestVersion = resume.versions?.[resume.versions.length - 1];
   const format = latestVersion?.format || 'latex';
-  const aiScore = liveAiScore || latestVersion?.ai_score;
+  const aiScore = liveAiScore; // Only show the live/manual audit
 
   const handleAIReview = async () => {
     if (!latestVersion) return;
@@ -311,53 +308,69 @@ export default function ResumeReviewPage() {
         </div>
 
         {/* Remarks & AI Panel (Right) */}
-        <div className="w-full lg:w-[400px] flex flex-col gap-6 overflow-auto">
+        <div className="w-full lg:w-[400px] flex flex-col gap-6 overflow-y-auto pr-2 pb-10 custom-scrollbar">
           {/* AI Content Breakdown */}
-          {aiScore && (
-            <div className="rounded-3xl bg-white dark:bg-slate-900/50 border border-border/40 p-6 space-y-5">
-              <div className="flex items-center gap-2 text-primary">
-                <Sparkles size={16} />
-                <h4 className="font-bold text-xs uppercase tracking-widest">AI Content Audit</h4>
-              </div>
-              
-              <div className="space-y-4">
-                {[
-                  { label: "Overall Score", score: aiScore.total || aiScore.overall || 0 },
-                  { label: "ATS Score", score: aiScore.ats_score || 0 },
-                  { label: "Formatting", score: aiScore.formatting || 0 },
-                ].filter(item => item.score > 0).map((item, i) => (
-                  <div key={i} className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
-                      <span className="text-slate-400">{item.label}</span>
-                      <span className={item.score < 50 ? "text-rose-500" : item.score < 75 ? "text-amber-500" : "text-emerald-500"}>{item.score}%</span>
-                    </div>
-                    <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                      <motion.div 
-                        initial={{ width: 0 }}
-                        animate={{ width: `${item.score}%` }}
-                        transition={{ delay: i * 0.15 }}
-                        className={cn("h-full rounded-full", item.score < 50 ? "bg-rose-500" : item.score < 75 ? "bg-amber-500" : "bg-emerald-500")}
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {aiScore.suggestions && aiScore.suggestions.length > 0 && (
-                <div className="space-y-2 pt-2 border-t border-border/40">
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AI Suggestions</p>
-                  <ul className="space-y-1.5">
-                    {aiScore.suggestions.map((s: string, i: number) => (
-                      <li key={i} className="text-xs text-slate-500 dark:text-slate-400 flex gap-2 leading-relaxed">
-                        <AlertTriangle size={12} className="text-amber-400 shrink-0 mt-0.5" />
-                        {s}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
+          <div className="rounded-3xl bg-white dark:bg-slate-900/50 border border-border/40 p-6 space-y-5 flex flex-col">
+            <div className="flex items-center gap-2 text-primary shrink-0">
+              <Sparkles size={16} />
+              <h4 className="font-bold text-xs uppercase tracking-widest">AI Content Audit</h4>
             </div>
-          )}
+            
+            {aiScore ? (
+              <div className="space-y-6">
+                <div className="space-y-4">
+                  {[
+                    { label: "Overall Score", score: aiScore.total || aiScore.overall || 0, color: "bg-primary" },
+                    { label: "ATS Score", score: aiScore.ats_score || 0, color: "bg-emerald-500" },
+                    { label: "Formatting", score: aiScore.formatting || 0, color: "bg-teal-500" },
+                  ].filter(item => item.score > 0).map((item, i) => (
+                    <div key={i} className="space-y-1.5">
+                      <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+                        <span className="text-slate-400">{item.label}</span>
+                        <span className={cn(
+                          item.score < 50 ? "text-rose-500" : item.score < 75 ? "text-amber-500" : "text-emerald-500"
+                        )}>{item.score}%</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${item.score}%` }}
+                          transition={{ duration: 0.8, delay: i * 0.1 }}
+                          className={cn("h-full rounded-full transition-all duration-500", item.color)}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {aiScore.suggestions && aiScore.suggestions.length > 0 && (
+                  <div className="space-y-3 pt-4 border-t border-border/40">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AI Suggestions</p>
+                    <ul className="space-y-2.5">
+                      {aiScore.suggestions.map((s: string, i: number) => (
+                        <li key={i} className="text-[11px] text-slate-600 dark:text-slate-400 flex gap-2.5 leading-normal group/item">
+                          <div className="w-1.5 h-1.5 rounded-full bg-amber-400/50 mt-1 shrink-0 group-hover/item:bg-amber-400 transition-colors" />
+                          {s}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center gap-3 text-center py-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-border/60">
+                <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-slate-300">
+                  <Sparkles size={20} strokeWidth={1.5} />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-slate-500 uppercase tracking-extra-widest">Audit Required</p>
+                  <p className="text-[9px] text-slate-400 leading-relaxed max-w-[180px] font-medium">
+                    Analyze content to receive AI-driven suggestions and scoring.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Remarks Section */}
           <div className="flex-1 rounded-3xl bg-white dark:bg-slate-900/50 border border-border/40 p-6 flex flex-col space-y-4">

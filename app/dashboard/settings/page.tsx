@@ -33,7 +33,8 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [profile, setProfile] = useState({
     name: user?.name || "",
-    department: user?.department || "Computer Science",
+    department: user?.department || "",
+    year: user?.year || 0,
   });
   const [notifications, setNotifications] = useState(user?.notificationsEnabled ?? true);
   const [syncStatus, setSyncStatus] = useState<"idle" | "syncing" | "synced" | "error">("idle");
@@ -58,7 +59,8 @@ export default function SettingsPage() {
     if (user) {
       setProfile({
         name: user.name,
-        department: user.department || "Computer Science"
+        department: user.department || "",
+        year: user.year || 0,
       });
       setSelectedModel(user.preferredModel || "");
       setNotifications(user.notificationsEnabled ?? true);
@@ -237,6 +239,14 @@ export default function SettingsPage() {
                     {user?.role}
                   </div>
                </div>
+               {user?.role === 'student' && (
+                 <div className="space-y-2">
+                    <label className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 pl-1">Academic Year</label>
+                    <div className="w-full px-5 py-3 rounded-2xl bg-slate-50 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 text-slate-400 text-sm font-light flex items-center h-[46px] opacity-70">
+                       {profile.year ? `${profile.year}${profile.year === 1 ? 'st' : profile.year === 2 ? 'nd' : profile.year === 3 ? 'rd' : 'th'} Year` : 'Year Not Set'}
+                    </div>
+                 </div>
+               )}
             </div>
           </motion.section>
 

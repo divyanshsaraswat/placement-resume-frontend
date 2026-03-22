@@ -1,6 +1,6 @@
 'use client'
 import { StudentsManagement } from "@/components/dashboard/StudentsManagement";
 
-export default function SPCStudentsPage() {
+export default function FacultyStudentsPage() {
   return <StudentsManagement />;
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { UserCheck, Users, Clock, ClipboardList, CheckCircle2, Loader2 } from "lucide-react";
+import { UserCheck, Clock, CheckCircle2, Loader2 } from "lucide-react";
 import { DashboardStats } from "../DashboardStats";
 import { DonutChart, BarChart } from "../DashboardCharts";
 import Link from "next/link";
@@ -57,18 +57,6 @@ export function FacultyDashboard() {
       value: (data?.status_distribution?.approved || 0) + (data?.status_distribution?.rejected || 0),
       icon: UserCheck,
       trend: { value: 15, isUp: true }
-    },
-    {
-      title: "Assigned Students",
-      value: data?.total_students || 0,
-      icon: Users,
-      description: "Aggregate view"
-    },
-    {
-      title: "Avg Review Time",
-      value: "4.2h", // Still mocked for now
-      icon: ClipboardList,
-      trend: { value: 10, isUp: true }
     }
   ];
 

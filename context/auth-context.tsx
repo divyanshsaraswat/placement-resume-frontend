@@ -38,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         llmCredits: userData.llm_credits,
         preferredModel: userData.preferred_model,
         notificationsEnabled: userData.notifications_enabled,
+        year: userData.year,
       };
       
       setState({
@@ -84,6 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             llmCredits: userData.llm_credits,
             preferredModel: userData.preferred_model,
             notificationsEnabled: userData.notifications_enabled,
+            year: userData.year,
           };
           
           setState({

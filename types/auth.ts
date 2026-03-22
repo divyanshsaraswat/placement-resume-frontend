@@ -12,6 +12,7 @@ export interface User {
   llmCredits?: number;
   preferredModel?: string;
   notificationsEnabled?: boolean;
+  year?: number;
 }
 
 export interface AuthState {

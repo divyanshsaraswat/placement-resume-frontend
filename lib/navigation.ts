@@ -49,6 +49,12 @@ export const dashboardNavItems: NavItem[] = [
     roles: ["spc"],
   },
   {
+    title: "Students",
+    href: "/dashboard/faculty/students",
+    icon: Users,
+    roles: ["faculty"],
+  },
+  {
     title: "Placement Analytics",
     href: "/dashboard/admin/students",
     icon: Users,
