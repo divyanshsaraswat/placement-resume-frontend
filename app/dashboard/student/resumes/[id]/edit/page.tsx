@@ -710,16 +710,32 @@ export default function ResumeEditorPage() {
                             className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700"
                           />
                         ) : (
-                          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
+                          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
                             <User size={10} className="text-slate-400" />
                           </div>
                         )}
-                        <p className="text-xs font-bold">{latestVersionData?.reviewer_name || "Unknown Reviewer"}</p>
+                        <div className="flex flex-col">
+                          <p className="text-xs font-bold">{latestVersionData?.reviewer_name || "Institutional Reviewer"}</p>
+                          {latestVersionData?.reviewer_role && (
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                              {latestVersionData.reviewer_role}
+                            </p>
+                          )}
+                        </div>
                       </div>
                    </div>
                    <div className="space-y-1">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Calendar size={12}/> Date</span>
-                      <p className="text-xs font-bold">{latestVersionData?.reviewed_at ? new Date(latestVersionData.reviewed_at).toLocaleString() : "N/A"}</p>
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        {latestVersionData?.reviewed_at ? new Date(latestVersionData.reviewed_at).toLocaleString('en-GB', { 
+                          day: '2-digit',
+                          month: 'short', 
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        }) : "N/A"}
+                      </p>
                    </div>
                 </div>
 

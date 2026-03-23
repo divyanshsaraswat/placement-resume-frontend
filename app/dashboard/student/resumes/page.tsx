@@ -620,35 +620,43 @@ export default function StudentResumesPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                   <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><User size={12}/> Reviewer</span>
-                      <div className="flex items-center gap-2">
-                        {selectedVersionData.reviewer_picture_url ? (
-                          <img 
-                            src={selectedVersionData.reviewer_picture_url} 
-                            alt="Reviewer" 
-                            className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700"
-                          />
-                        ) : (
-                          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
-                            <User size={10} className="text-slate-400" />
-                          </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><User size={12}/> Reviewer</span>
+                    <div className="flex items-center gap-2">
+                      {selectedVersionData.reviewer_picture_url ? (
+                        <img 
+                          src={selectedVersionData.reviewer_picture_url} 
+                          alt="Reviewer" 
+                          className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                        />
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                          <User size={10} className="text-slate-400" />
+                        </div>
+                      )}
+                      <div className="flex flex-col">
+                        <p className="text-xs font-bold">{selectedVersionData.reviewer_name || "Institutional Reviewer"}</p>
+                        {selectedVersionData.reviewer_role && (
+                          <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                            {selectedVersionData.reviewer_role}
+                          </p>
                         )}
-                        <p className="text-xs font-bold">{selectedVersionData.reviewer_name || "Unknown Reviewer"}</p>
                       </div>
-                   </div>
-                   <div className="space-y-1">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Calendar size={12}/> Date</span>
-                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                        {selectedVersionData.reviewed_at ? new Date(selectedVersionData.reviewed_at).toLocaleString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        }) : "N/A"}
-                      </p>
-                   </div>
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Calendar size={12}/> Date</span>
+                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                      {selectedVersionData.reviewed_at ? new Date(selectedVersionData.reviewed_at).toLocaleString('en-GB', { 
+                        day: '2-digit',
+                        month: 'short', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      }) : "N/A"}
+                    </p>
+                  </div>
                 </div>
 
                 {/* History Section */}

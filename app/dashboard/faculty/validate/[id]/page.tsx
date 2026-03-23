@@ -678,18 +678,26 @@ export default function ResumeReviewPage() {
                             <User size={10} className="text-slate-400" />
                           </div>
                         )}
-                        <p className="text-xs font-bold">{selectedVersionData.reviewer_name || "Institutional Reviewer"}</p>
+                        <div className="flex flex-col">
+                          <p className="text-xs font-bold">{selectedVersionData.reviewer_name || "Institutional Reviewer"}</p>
+                          {selectedVersionData.reviewer_role && (
+                            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                              {selectedVersionData.reviewer_role}
+                            </p>
+                          )}
+                        </div>
                       </div>
                    </div>
                    <div className="space-y-1">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Calendar size={12}/> Date</span>
                       <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                        {selectedVersionData.reviewed_at ? new Date(selectedVersionData.reviewed_at).toLocaleString('en-US', { 
+                        {selectedVersionData.reviewed_at ? new Date(selectedVersionData.reviewed_at).toLocaleString('en-GB', { 
+                          day: '2-digit',
                           month: 'short', 
-                          day: 'numeric', 
                           year: 'numeric',
                           hour: '2-digit',
-                          minute: '2-digit'
+                          minute: '2-digit',
+                          hour12: true
                         }) : "N/A"}
                       </p>
                    </div>
