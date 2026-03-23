@@ -12,6 +12,34 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
 
+const CardSkeleton = () => (
+  <div className="space-y-4">
+    <div className="aspect-[4/3] rounded-3xl bg-slate-100/50 dark:bg-slate-900/50 animate-pulse flex flex-col p-6 md:p-8 relative overflow-hidden border border-slate-100 dark:border-slate-800">
+      <div className="flex justify-between items-center">
+        <div className="flex items-center gap-2.5">
+          <div className="w-5 h-5 bg-slate-200 dark:bg-slate-800 rounded-lg" />
+          <div className="w-16 h-4 bg-slate-200 dark:bg-slate-800 rounded-full" />
+        </div>
+        <div className="w-20 h-7 bg-slate-200 dark:bg-slate-800 rounded-full" />
+      </div>
+      <div className="mt-auto space-y-3">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-3 bg-slate-200 dark:bg-slate-800 rounded-full" />
+          <div className="w-1 h-1 bg-slate-200 dark:bg-slate-800 rounded-full" />
+          <div className="w-20 h-3 bg-slate-200 dark:bg-slate-800 rounded-full" />
+        </div>
+        <div className="w-40 h-7 bg-slate-200 dark:bg-slate-800 rounded-xl" />
+      </div>
+      {/* Skeleton Accent Bar */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-slate-200 dark:bg-slate-800" />
+    </div>
+    <div className="px-2 flex justify-between items-center">
+      <div className="w-28 h-3 bg-slate-100 dark:bg-slate-900 rounded-full" />
+      <div className="w-16 h-3 bg-slate-100 dark:bg-slate-900 rounded-full" />
+    </div>
+  </div>
+);
+
 export default function StudentResumesPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -44,12 +72,13 @@ export default function StudentResumesPage() {
     try {
       setIsLoading(true);
       const data = await resumeApi.getResumes(signal);
+      if (signal?.aborted) return;
       setResumes(data);
+      setIsLoading(false);
     } catch (err: any) {
       if (err.name === 'CanceledError' || err.name === 'AbortError') return;
       console.error(err);
       toast.error("Failed to load resumes");
-    } finally {
       setIsLoading(false);
     }
   };
@@ -287,9 +316,10 @@ export default function StudentResumesPage() {
 
       {/* Resumes Grid */}
       {isLoading ? (
-        <div className="h-64 flex flex-col items-center justify-center gap-4">
-          <Loader2 className="animate-spin text-slate-200" size={32} />
-          <p className="text-xs text-slate-300 font-light">Loading documents...</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-10 xl:gap-12">
+          {[...Array(6)].map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
         </div>
       ) : filteredCards.length === 0 ? (
         <div className="h-64 flex flex-col items-center justify-center gap-4 opacity-40 border-2 border-dashed border-slate-100 dark:border-slate-800 rounded-[3rem]">
@@ -306,7 +336,7 @@ export default function StudentResumesPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 md:gap-10 xl:gap-12">
           {filteredCards.map((version, i) => {
             const resumeId = version.resumeId;
             const cardId = version.key;
@@ -326,7 +356,7 @@ export default function StudentResumesPage() {
                 }}
               >
                 <div className={cn(
-                  "aspect-[4/3] rounded-3xl bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 border-b-[3px] border-b-transparent shadow-sm flex flex-col p-8 transition-all group-hover:bg-slate-50 dark:group-hover:bg-slate-900 relative overflow-hidden group-hover:shadow-md group-hover:-translate-y-1",
+                  "aspect-[4/3] rounded-3xl bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 border-b-[3px] border-b-transparent shadow-sm flex flex-col p-6 md:p-8 transition-all group-hover:bg-slate-50 dark:group-hover:bg-slate-900 relative overflow-hidden group-hover:shadow-md group-hover:-translate-y-1",
                   formatTheme.borderColor
                 )}>
                   {/* Hover Accent Bar - Always visible 2px, grows to 6px */}
@@ -377,7 +407,7 @@ export default function StudentResumesPage() {
                           openMenuId === cardId && "text-primary bg-slate-100 dark:bg-slate-800"
                         )}
                       >
-                        <MoreVertical size={16} />
+                        <MoreVertical size={18} />
                       </button>
                     </div>
                   </div>
