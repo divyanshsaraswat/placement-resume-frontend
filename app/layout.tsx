@@ -32,8 +32,8 @@ export const metadata: Metadata = {
     creator: "@sysume", // Adjust if there's a specific twitter handle
   },
   icons: {
-    icon: "/logo.svg",
-    apple: "/logo.svg", // Using logo.svg as a placeholder for apple-touch-icon if no dedicated png exists
+    icon: "/favicon.ico",
+    apple: "/favicon.ico", // Using favicon.ico as a placeholder if no dedicated png exists
   },
   robots: {
     index: true,
