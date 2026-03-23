@@ -131,14 +131,14 @@ export function EditorHeader({
             </button>
             <button 
               onClick={onAIOpen}
-              disabled={(user?.llmCredits !== undefined && user.llmCredits <= 0) || status === 'submitted' || status === 'approved'}
+              disabled={(user?.llmCredits !== undefined && user.llmCredits <= 0)}
               className={cn(
                 "flex items-center justify-center sm:gap-2 p-2 sm:px-4 sm:py-2 rounded-xl text-xs font-bold transition-all border",
-                ((user?.llmCredits !== undefined && user.llmCredits <= 0) || status === 'submitted' || status === 'approved')
+                (user?.llmCredits !== undefined && user.llmCredits <= 0)
                   ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
                   : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
               )}
-              title={(user?.llmCredits !== undefined && user.llmCredits <= 0) ? "Insufficient credits" : (status === 'submitted' || status === 'approved') ? "Document Locked" : "AI Review"}
+              title={(user?.llmCredits !== undefined && user.llmCredits <= 0) ? "Insufficient credits" : "AI Review"}
             >
               <Sparkles size={14} className={cn((user?.llmCredits !== undefined && user.llmCredits <= 0) ? "opacity-50" : "animate-pulse")} />
               <span className="hidden sm:inline">AI Review</span>
