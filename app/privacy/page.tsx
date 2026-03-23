@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Shield, Lock, Eye, FileText } from "lucide-react";
 import Link from "next/link";
 import { Header } from "@/components/landing/Header";
-import { Footer } from "@/components/landing/Footer";
+import { LandingWrapper } from "@/components/landing/LandingWrapper";
 
 export default function PrivacyPolicyPage() {
   const sections = [
@@ -31,7 +31,7 @@ export default function PrivacyPolicyPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-background text-foreground selection:bg-primary/10">
+    <LandingWrapper>
       <Header />
       
       <div className="pt-44 pb-32 px-6">
@@ -115,8 +115,7 @@ export default function PrivacyPolicyPage() {
           </div>
         </div>
       </div>
-
-      <Footer />
-    </main>
+    </LandingWrapper>
   );
 }
+

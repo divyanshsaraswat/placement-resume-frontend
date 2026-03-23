@@ -14,9 +14,12 @@ import {
   ExternalLink,
   Loader2,
   FileCode,
-  Download
+  Download,
+  X,
+  User,
+  Calendar
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
@@ -35,6 +38,8 @@ export default function ResumeReviewPage() {
   const [isCompiling, setIsCompiling] = useState(false);
   const [liveAiScore, setLiveAiScore] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [showRemarkModal, setShowRemarkModal] = useState(false);
+  const [selectedVersionData, setSelectedVersionData] = useState<any>(null);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -105,6 +110,13 @@ export default function ResumeReviewPage() {
   const latestVersion = resume.versions?.[resume.versions.length - 1];
   const format = latestVersion?.format || 'latex';
   const aiScore = liveAiScore; // Only show the live/manual audit
+
+  const statusColors: Record<string, string> = {
+    approved: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+    submitted: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+    rejected: "bg-rose-500/10 text-rose-600 border-rose-500/20",
+    draft: "bg-slate-500/10 text-slate-600 border-slate-500/20",
+  };
 
   const handleAIReview = async () => {
     if (!latestVersion) return;
@@ -196,9 +208,30 @@ export default function ResumeReviewPage() {
               <h2 className="text-base font-bold tracking-tight text-slate-900 dark:text-white">
                 {latestVersion?.type || "Resume"} Review
               </h2>
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
-                {format.toUpperCase()} • Version {resume.versions?.length || 1} • {latestVersion?.status?.toUpperCase() || "SUBMITTED"}
-              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                  {format.toUpperCase()} • Version {resume.versions?.length || 1} •
+                </span>
+                <button 
+                  onClick={() => {
+                    if (latestVersion?.status === 'approved' || latestVersion?.status === 'rejected') {
+                      setSelectedVersionData({
+                        ...latestVersion,
+                        reviewer_name: latestVersion.reviewer_name || "Institutional Reviewer",
+                        reviewed_at: latestVersion.updated_at
+                      });
+                      setShowRemarkModal(true);
+                    }
+                  }}
+                  className={cn(
+                    "px-2 py-0.5 rounded text-[10px] uppercase tracking-widest font-bold border transition-all",
+                    statusColors[latestVersion?.status || "submitted"],
+                    (latestVersion?.status === 'approved' || latestVersion?.status === 'rejected') && "hover:opacity-80 cursor-pointer"
+                  )}
+                >
+                  {latestVersion?.status?.toUpperCase() || "SUBMITTED"}
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -212,28 +245,34 @@ export default function ResumeReviewPage() {
             {isAnalyzing ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
             {isAnalyzing ? "Auditing..." : "Run AI Audit"}
           </button>
+          
           {aiScore && (
             <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/5 border border-primary/10">
               <Sparkles size={14} className="text-primary" />
               <span className="text-xs font-bold text-primary">{aiScore.total || aiScore.overall || "--"}/100</span>
             </div>
           )}
-          <button 
-            onClick={() => handleAction("rejected")}
-            disabled={isSubmitting}
-            className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-500 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 transition-all disabled:opacity-50"
-          >
-            <XCircle size={16} />
-            Reject
-          </button>
-          <button 
-            onClick={() => handleAction("approved")}
-            disabled={isSubmitting}
-            className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-white bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
-          >
-            {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
-            Approve
-          </button>
+
+          {latestVersion?.status !== 'approved' && (
+            <>
+              <button 
+                onClick={() => handleAction("rejected")}
+                disabled={isSubmitting}
+                className="flex-1 sm:flex-none px-5 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-rose-500 bg-rose-50 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-950/50 transition-all disabled:opacity-50"
+              >
+                <XCircle size={16} />
+                Reject
+              </button>
+              <button 
+                onClick={() => handleAction("approved")}
+                disabled={isSubmitting}
+                className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-wider text-white bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 transition-all disabled:opacity-50"
+              >
+                {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle size={16} />}
+                Approve
+              </button>
+            </>
+          )}
         </div>
       </div>
 
@@ -405,6 +444,100 @@ export default function ResumeReviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Dynamic Status Remark Modal */}
+      <AnimatePresence>
+        {showRemarkModal && selectedVersionData && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm" onClick={() => setShowRemarkModal(false)}>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              onClick={(e) => e.stopPropagation()}
+              className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800"
+            >
+              <div className="p-6 border-b border-border flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-bold tracking-tight flex items-center gap-2">
+                    Review Details
+                    <span className={cn(
+                      "px-2 py-0.5 rounded text-[10px] uppercase tracking-widest font-bold border",
+                       statusColors[selectedVersionData.status as string] || statusColors.draft
+                    )}>
+                      {selectedVersionData.status}
+                    </span>
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest">
+                    Feedback from Review Committee
+                  </p>
+                </div>
+                <button 
+                  onClick={() => setShowRemarkModal(false)}
+                  className="p-2 bg-slate-100 dark:bg-slate-800 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6">
+                <div className="space-y-4">
+                  <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                    <MessageSquare size={14} /> Official Remark
+                  </h4>
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+                    {selectedVersionData.reviewer_remark ? (
+                       <span className="whitespace-pre-wrap">{selectedVersionData.reviewer_remark}</span>
+                    ) : (
+                       <span className="italic text-slate-400">No specific remarks were provided by the reviewer.</span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                   <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><User size={12}/> Reviewer</span>
+                      <div className="flex items-center gap-2">
+                        {selectedVersionData.reviewer_picture_url ? (
+                          <img 
+                            src={selectedVersionData.reviewer_picture_url} 
+                            alt="Reviewer" 
+                            className="w-5 h-5 rounded-full object-cover border border-slate-200 dark:border-slate-700"
+                          />
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200 dark:border-slate-700">
+                            <User size={10} className="text-slate-400" />
+                          </div>
+                        )}
+                        <p className="text-xs font-bold">{selectedVersionData.reviewer_name || "Institutional Reviewer"}</p>
+                      </div>
+                   </div>
+                   <div className="space-y-1">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5"><Calendar size={12}/> Date</span>
+                      <p className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                        {selectedVersionData.reviewed_at ? new Date(selectedVersionData.reviewed_at).toLocaleString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric', 
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        }) : "N/A"}
+                      </p>
+                   </div>
+                </div>
+              </div>
+              <div className="p-4 border-t border-border bg-slate-50 dark:bg-slate-800/50 flex justify-end">
+                <button 
+                  onClick={() => setShowRemarkModal(false)}
+                  className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-xs font-bold uppercase tracking-widest hover:scale-105 transition"
+                >
+                  Confirm
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
+
