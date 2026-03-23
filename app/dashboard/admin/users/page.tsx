@@ -188,27 +188,27 @@ export default function UserManagementPage() {
       </div>
 
       <div className="nm-flat rounded-[3.5rem] p-8 pb-16 space-y-8 min-h-[500px]">
-        <div className="flex flex-col md:flex-row gap-6 justify-between items-center">
-          <div className="w-full md:w-96 nm-inset px-6 py-4 rounded-3xl flex items-center gap-4">
-            <Search size={18} className="text-slate-400 dark:text-slate-500" />
+        <div className="flex flex-col lg:flex-row gap-4 justify-between items-center">
+          <div className="w-full lg:flex-1 max-w-2xl nm-inset bg-slate-50/50 dark:bg-slate-900/30 px-6 py-4 rounded-[2rem] flex items-center gap-4 group focus-within:ring-2 focus-within:ring-primary/20 transition-all">
+            <Search size={18} className="text-slate-400 group-focus-within:text-primary transition-colors shrink-0" />
             <input 
               type="text" 
               placeholder="Search by name, email, department..." 
-              className="bg-transparent border-0 border-b border-slate-200 dark:border-slate-800 focus:border-primary outline-none w-full text-sm font-medium transition-all rounded-none placeholder:text-slate-400 dark:placeholder:text-slate-600"
+              className="bg-transparent border-none outline-none w-full text-sm font-bold transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 placeholder:font-medium"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          <div className="flex gap-4 relative">
+          <div className="flex w-full lg:w-auto gap-3 relative">
              <button 
               onClick={() => setIsFilterOpen(!isFilterOpen)}
               className={cn(
-                "nm-convex px-8 py-4 rounded-2xl flex items-center gap-3 text-sm font-bold transition-all",
+                "nm-convex flex-1 lg:flex-none px-8 py-4 rounded-2xl flex items-center justify-center gap-3 text-xs font-bold uppercase tracking-widest transition-all",
                 roleFilter !== "all" ? "text-primary nm-inset" : "text-muted-foreground hover:nm-inset"
               )}
              >
-               <Filter size={18} />
-               <span>{roleFilter === "all" ? "Filter Role" : roleFilter.toUpperCase()}</span>
+               <Filter size={16} />
+               <span>{roleFilter === "all" ? "Filter Role" : roleFilter}</span>
              </button>
 
              <AnimatePresence>
@@ -219,19 +219,19 @@ export default function UserManagementPage() {
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
                       onClick={() => setIsFilterOpen(false)}
-                      className="fixed inset-0 z-40 bg-black/5"
+                      className="fixed inset-0 z-40 bg-black/10 backdrop-blur-[2px]"
                     />
                     <motion.div
                       initial={{ opacity: 0, scale: 0.95, y: 10 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.95, y: 10 }}
-                      className="absolute top-16 right-0 w-64 nm-flat bg-background rounded-3xl p-4 z-50 shadow-2xl border border-white/10"
+                      className="absolute top-16 right-0 w-64 nm-flat bg-background/95 backdrop-blur-xl rounded-[2rem] p-4 z-50 shadow-2xl border border-white/20"
                     >
-                      <div className="flex items-center gap-2 mb-4 px-2 text-primary">
+                      <div className="flex items-center gap-2 mb-4 px-3 text-primary">
                         <SlidersHorizontal size={14} />
-                        <span className="text-[10px] uppercase font-bold tracking-widest">Filter by Role</span>
+                        <span className="text-[10px] uppercase font-bold tracking-[0.2em]">Filter Access</span>
                       </div>
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         {roles.map(r => (
                           <button
                             key={r}
@@ -240,11 +240,11 @@ export default function UserManagementPage() {
                               setIsFilterOpen(false);
                             }}
                             className={cn(
-                              "w-full flex items-center justify-between px-4 py-3 rounded-xl text-xs font-bold transition-all",
+                              "w-full flex items-center justify-between px-4 py-3.5 rounded-2xl text-[10px] uppercase tracking-widest font-bold transition-all",
                               roleFilter === r ? "nm-inset text-primary" : "hover:bg-slate-50 dark:hover:bg-slate-900 text-muted-foreground"
                             )}
                           >
-                            <span className="capitalize">{r === "all" ? "All Users" : r}</span>
+                            <span>{r === "all" ? "All Users" : r}</span>
                             {roleFilter === r && <Check size={14} />}
                           </button>
                         ))}
@@ -267,81 +267,103 @@ export default function UserManagementPage() {
             <p className="text-lg font-light">No users found</p>
           </div>
         ) : (
-          <div className="overflow-x-auto custom-scrollbar overflow-y-visible">
-            <table className="w-full text-left border-separate border-spacing-y-4">
-              <thead>
-                <tr className="text-slate-500/60 dark:text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
-                  <th className="px-8 py-2">User</th>
-                  <th className="px-8 py-2">Role & Department</th>
-                  <th className="px-8 py-2">Status</th>
-                  <th className="px-8 py-2 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user, i) => (
-                  <motion.tr 
-                    key={user.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="nm-flat bg-background hover:scale-[1.005] transition-all cursor-pointer group"
-                  >
-                    <td className="px-8 py-6 rounded-l-[2rem]">
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-full nm-inset flex items-center justify-center text-primary font-bold text-sm bg-gradient-to-br from-primary/5 to-transparent">
-                          {user.name?.[0].toUpperCase()}
-                        </div>
-                        <div>
-                          <p className="font-bold text-sm text-slate-800 dark:text-white group-hover:text-primary transition-colors">{user.name}</p>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-500 font-medium">{user.email}</p>
-                        </div>
+          <div className="space-y-4">
+            {/* Headers - Desktop Only */}
+            <div className="hidden md:grid grid-cols-[1.5fr_1fr_0.8fr_0.4fr] px-10 text-slate-500/60 dark:text-slate-500 text-[10px] uppercase tracking-[0.2em] font-bold">
+              <div>User</div>
+              <div>Role & Department</div>
+              <div>Status</div>
+              <div className="text-right">Actions</div>
+            </div>
+
+            <div className="space-y-4">
+              {users.map((user, i) => (
+                <motion.div 
+                  key={user.id}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.05 }}
+                  className="relative nm-flat bg-background hover:nm-convex transition-all cursor-pointer group rounded-[2.5rem] overflow-hidden group/card"
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-[1.5fr_1fr_0.8fr_0.4fr] items-center p-6 md:px-10">
+                    {/* User Header Section (Left on Desktop) */}
+                    <div className="flex items-center gap-5 pr-12 md:pr-0">
+                      <div className="w-14 h-14 rounded-full nm-inset flex items-center justify-center text-primary font-bold text-lg bg-gradient-to-br from-primary/10 to-transparent shrink-0">
+                        {user.name?.[0].toUpperCase()}
                       </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <div className="flex items-center gap-3">
-                         {(() => {
-                           const RoleUI = roleIcons[user.role] || roleIcons.student;
-                           return (
-                             <div className={cn("nm-inset p-2 rounded-lg", RoleUI.color)}>
-                               <RoleUI.icon size={14} />
-                             </div>
-                           );
-                         })()}
-                         <div className="flex flex-col">
-                            <span className="text-xs font-bold capitalize text-slate-800 dark:text-slate-200">{user.role}</span>
-                            <span className="text-[9px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">{user.department || "General"}</span>
-                         </div>
+                      <div className="min-w-0 text-left space-y-0.5">
+                        <p className="font-bold text-base text-slate-800 dark:text-white group-hover/card:text-primary transition-colors truncate">{user.name}</p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate tracking-tight">{user.email}</p>
                       </div>
-                    </td>
-                    <td className="px-8 py-6">
-                      <span className={cn(
-                        "px-4 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-sm",
-                        user.is_active ? "text-emerald-500 bg-emerald-500/10" : "text-rose-500 bg-rose-500/10"
-                      )}>
-                        {user.is_active ? "active" : "inactive"}
-                      </span>
-                    </td>
-                    <td className="px-8 py-6 text-right rounded-r-[2rem]">
-                      <div className="flex justify-end items-center gap-2">
-                        <button 
-                          ref={el => { buttonRefs.current[user.id] = el; }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOpenMenuId(openMenuId === user.id ? null : user.id);
-                          }}
-                          className={cn(
-                            "nm-convex p-3 rounded-2xl text-muted-foreground hover:nm-inset hover:text-primary transition-all active:scale-90",
-                            openMenuId === user.id && "nm-inset text-primary"
-                          )}
-                        >
-                          <MoreVertical size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </motion.tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+
+                    {/* Desktop Content Columns continue... */}
+                    
+                    {/* Role & Status Row - Structured on Mobile */}
+                    <div className="mt-6 md:mt-0 flex flex-wrap items-center gap-4 lg:gap-8">
+                       {/* Role Badge */}
+                       <div className="flex items-center gap-3 nm-convex px-4 py-2.5 rounded-2xl bg-slate-50/50 dark:bg-slate-900/50">
+                          {(() => {
+                            const RoleUI = roleIcons[user.role] || roleIcons.student;
+                            return (
+                              <div className={cn("p-1.5 rounded-lg", RoleUI.color, "nm-inset")}>
+                                <RoleUI.icon size={12} />
+                              </div>
+                            );
+                          })()}
+                          <div className="flex flex-col">
+                             <span className="text-[10px] font-bold uppercase tracking-widest text-slate-800 dark:text-slate-200">{user.role}</span>
+                             <span className="text-[8px] font-bold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500 truncate max-w-[100px]">{user.department || "General"}</span>
+                          </div>
+                       </div>
+
+                       {/* Status Badge - Inline on Mobile */}
+                       <div className="md:hidden lg:block">
+                          <span className={cn(
+                            "inline-flex px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] shadow-sm",
+                            user.is_active ? "text-emerald-500 bg-emerald-500/10" : "text-rose-500 bg-rose-500/10"
+                          )}>
+                            {user.is_active ? "active" : "inactive"}
+                          </span>
+                       </div>
+                    </div>
+
+                    {/* Status Placeholder for Tablet - Hidden on Desktop/Mobile row which already has it */}
+                    <div className="hidden md:block lg:hidden">
+                       {/* Status Badge only shows in this col on Tablet widths */}
+                        <span className={cn(
+                          "inline-flex px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-[0.2em] shadow-sm",
+                          user.is_active ? "text-emerald-500 bg-emerald-500/10" : "text-rose-500 bg-rose-500/10"
+                        )}>
+                          {user.is_active ? "active" : "inactive"}
+                        </span>
+                    </div>
+                    
+                    {/* Desktop Status Col - Only for large screens where status isn't in role row */}
+                    <div className="hidden lg:block">
+                        {/* Status already rendered in role row for desktop via lg:block above */}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="absolute right-6 top-8 md:relative md:right-0 md:top-0 flex justify-end items-center">
+                      <button 
+                        ref={el => { buttonRefs.current[user.id] = el; }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setOpenMenuId(openMenuId === user.id ? null : user.id);
+                        }}
+                        className={cn(
+                          "nm-convex p-3.5 rounded-2xl text-muted-foreground hover:nm-inset hover:text-primary transition-all active:scale-95 group/btn",
+                          openMenuId === user.id && "nm-inset text-primary"
+                        )}
+                      >
+                        <MoreVertical size={18} className="group-hover/btn:scale-110 transition-transform" />
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
           </div>
         )}
       </div>

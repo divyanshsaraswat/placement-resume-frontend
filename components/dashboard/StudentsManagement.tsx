@@ -10,13 +10,15 @@ import { useDebounce } from "@/hooks/use-debounce";
 import { useAuth } from "@/context/auth-context";
 
 const DEPARTMENTS = [
-  "Computer Science & Engineering",
-  "Electronics & Communication Engineering",
+  "Computer Science and Engineering",
+  "Electronics and Communication Engineering",
   "Electrical Engineering",
   "Mechanical Engineering",
   "Civil Engineering",
   "Chemical Engineering",
-  "Metallurgical & Materials Engineering",
+  "Metallurgical and Materials Engineering",
+  "Artificial Intelligence and Data Engineering",
+  "Architecture and Planning",
 ];
 
 export function StudentsManagement() {

@@ -22,6 +22,7 @@ import { DonutChart, LineChart } from "@/components/dashboard/DashboardCharts";
 export default function AdminStudentsPage() {
   const [analytics, setAnalytics] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchReady, setSearchReady] = useState("");
 
   useEffect(() => {
     const fetchAnalytics = async () => {
@@ -53,6 +54,34 @@ export default function AdminStudentsPage() {
     { label: "Draft", value: analytics?.status_distribution?.draft || 0, color: "var(--primary)" },
     { label: "Not Started", value: analytics?.status_distribution?.not_created || 0, color: "var(--slate-400)" },
   ];
+
+  const getDeptAbbreviation = (name: string) => {
+    const map: Record<string, string> = {
+      "Computer Science and Engineering": "CSE",
+      "Electronics and Communication Engineering": "ECE",
+      "Electrical Engineering": "EE",
+      "Mechanical Engineering": "ME",
+      "Civil Engineering": "CE",
+      "Chemical Engineering": "CHE",
+      "Metallurgical and Materials Engineering": "MME",
+      "Artificial Intelligence and Data Engineering": "AI",
+      "Architecture and Planning": "ARCH"
+    };
+    return map[name] || name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 3);
+  };
+
+  const handleExportAll = () => {
+    const count = analytics?.status_distribution?.approved || 0;
+    if (count === 0) {
+      toast.error("No approved resumes to export");
+      return;
+    }
+    toast.info(`Preparing bulk export for all ${count} approved resumes...`);
+  };
+
+  const handleExportBranch = (dept: string, count: number) => {
+    toast.info(`Preparing batch export for ${dept} (${count} students)...`);
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 py-8">
@@ -179,50 +208,80 @@ export default function AdminStudentsPage() {
             <div className="flex items-center gap-4">
                <div className="nm-inset px-4 py-2 rounded-xl flex items-center gap-2 text-xs">
                   <Search size={14} className="text-muted-foreground" />
-                  <input type="text" placeholder="Filter ready students..." className="bg-transparent border-none outline-none w-40" />
+                  <input 
+                    type="text" 
+                    placeholder="Filter ready students..." 
+                    className="bg-transparent border-none outline-none w-40" 
+                    value={searchReady}
+                    onChange={(e) => setSearchReady(e.target.value)}
+                  />
                </div>
-               <button className="btn-primary h-10 px-6 text-[10px]">Prepare Bulk Export</button>
+               <button 
+                onClick={handleExportAll}
+                className="btn-primary h-10 px-6 text-[10px]"
+               >
+                 Prepare Bulk Export
+               </button>
             </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {/* Placeholder for "Ready" students - could be a separate small list or direct link */}
-            <div className="nm-convex p-6 rounded-2xl flex items-center justify-between group hover:nm-inset transition-all cursor-pointer">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full nm-inset flex items-center justify-center font-bold text-primary">CS</div>
-                    <div>
-                        <p className="text-sm font-bold">Batch Export</p>
-                        <p className="text-[10px] text-muted-foreground">Download all approved resumes</p>
-                    </div>
-                </div>
-                <ArrowRight size={18} className="text-slate-300 group-hover:text-primary transition-colors" />
-            </div>
+            {/* Dynamic Branch Cards */}
+            {analytics?.department_metrics
+              ?.filter((d: any) => d.ready > 0 && d.name.toLowerCase().includes(searchReady.toLowerCase()))
+              .map((dept: any, i: number) => (
+                <motion.div 
+                  key={i}
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.05 }}
+                  onClick={() => handleExportBranch(dept.name, dept.ready)}
+                  className="nm-convex p-6 rounded-2xl flex items-center justify-between group hover:nm-inset transition-all cursor-pointer"
+                >
+                  <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full nm-inset flex items-center justify-center font-bold text-primary text-xs tracking-tighter">
+                        {getDeptAbbreviation(dept.name)}
+                      </div>
+                      <div>
+                          <p className="text-sm font-bold truncate max-w-[150px]">{dept.name}</p>
+                          <p className="text-[10px] text-muted-foreground">{dept.ready} Approved Resumes</p>
+                      </div>
+                  </div>
+                  <ArrowRight size={18} className="text-slate-300 group-hover:text-primary transition-colors shrink-0" />
+                </motion.div>
+              ))
+            }
 
-            <div className="nm-convex p-6 rounded-2xl flex items-center justify-between group hover:nm-inset transition-all cursor-pointer">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full nm-inset flex items-center justify-center font-bold text-amber-500">
-                        <Clock size={20} />
-                    </div>
-                    <div>
-                        <p className="text-sm font-bold">Pending Review</p>
-                        <p className="text-[10px] text-muted-foreground">{analytics?.status_distribution?.submitted || 0} students waiting</p>
-                    </div>
-                </div>
-                <ArrowRight size={18} className="text-slate-300 group-hover:text-primary transition-colors" />
-            </div>
+            {/* Global Actions Sub-Section (if relevant) */}
+            {analytics?.status_distribution?.submitted > 0 && (
+              <div className="nm-convex p-6 rounded-2xl flex items-center justify-between group hover:nm-inset transition-all cursor-pointer">
+                  <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full nm-inset flex items-center justify-center font-bold text-amber-500">
+                          <Clock size={20} />
+                      </div>
+                      <div>
+                          <p className="text-sm font-bold">Pending Review</p>
+                          <p className="text-[10px] text-muted-foreground">{analytics?.status_distribution?.submitted || 0} students waiting</p>
+                      </div>
+                  </div>
+                  <ArrowRight size={18} className="text-slate-300 group-hover:text-primary transition-colors" />
+              </div>
+            )}
 
-            <div className="nm-convex p-6 rounded-2xl flex items-center justify-between group hover:nm-inset transition-all cursor-pointer">
-                <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full nm-inset flex items-center justify-center font-bold text-rose-500">
-                        <AlertCircle size={20} />
-                    </div>
-                    <div>
-                        <p className="text-sm font-bold">Not Started</p>
-                        <p className="text-[10px] text-muted-foreground">{analytics?.status_distribution?.not_created || 0} students remaining</p>
-                    </div>
-                </div>
-                <ArrowRight size={18} className="text-slate-300 group-hover:text-primary transition-colors" />
-            </div>
+            {analytics?.status_distribution?.not_created > 0 && (
+              <div className="nm-convex p-6 rounded-2xl flex items-center justify-between group hover:nm-inset transition-all cursor-pointer">
+                  <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-full nm-inset flex items-center justify-center font-bold text-rose-500">
+                          <AlertCircle size={20} />
+                      </div>
+                      <div>
+                          <p className="text-sm font-bold">Not Started</p>
+                          <p className="text-[10px] text-muted-foreground">{analytics?.status_distribution?.not_created || 0} students remaining</p>
+                      </div>
+                  </div>
+                  <ArrowRight size={18} className="text-slate-300 group-hover:text-primary transition-colors" />
+              </div>
+            )}
         </div>
       </div>
     </div>

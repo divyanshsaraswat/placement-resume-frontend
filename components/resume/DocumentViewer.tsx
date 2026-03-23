@@ -31,15 +31,16 @@ pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/b
 interface DocumentViewerProps {
   url: string;
   format: string;
+  onRecompile?: () => void;
 }
 
-export function DocumentViewer({ url, format }: DocumentViewerProps) {
+export function DocumentViewer({ url, format, onRecompile }: DocumentViewerProps) {
   const [numPages, setNumPages] = useState<number | null>(null);
   const [pageNumber, setPageNumber] = useState(1);
   const [scale, setScale] = useState(1.0);
   const [rotation, setRotation] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [showToolbar, setShowToolbar] = useState(false);
+  const [showToolbar, setShowToolbar] = useState(true);
   const { theme, resolvedTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const touchStartDist = useRef<number | null>(null);
@@ -154,73 +155,72 @@ export function DocumentViewer({ url, format }: DocumentViewerProps) {
     >
       {/* Premium Floating Toolbar */}
       <div className={cn(
-        "absolute top-6 left-1/2 -translate-x-1/2 z-20 w-max max-w-[90vw] px-4 md:px-6 py-3 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl border border-white/20 dark:border-slate-800/40 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex flex-wrap md:flex-nowrap items-center justify-center gap-3 md:gap-6 transition-all duration-500",
-        showToolbar ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 group-hover:opacity-100 group-hover:translate-y-0"
+        "absolute top-3 left-1/2 -translate-x-1/2 z-20 w-max max-w-[95%] px-1.5 py-1 md:py-2.5 md:px-5 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-xl md:rounded-2xl shadow-2xl flex items-center justify-center gap-0.5 md:gap-4 transition-all duration-300"
       )}
       onClick={(e) => e.stopPropagation()}
       >
         
         {/* Navigation */}
-        <div className="flex items-center gap-2 md:gap-3 pr-3 md:pr-6 border-r border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-0.5 md:gap-2 pr-0.5 md:pr-4 border-r border-slate-200 dark:border-slate-800">
           <button 
             onClick={() => setPageNumber(prev => Math.max(prev - 1, 1))}
             disabled={pageNumber <= 1}
-            className="p-1.5 md:p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-all text-slate-600 dark:text-slate-400"
+            className="p-1 md:p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-all text-slate-600 dark:text-slate-400"
           >
             <ChevronLeft size={16} />
           </button>
-          <div className="flex items-center gap-1.5 md:gap-2 px-2 md:px-3 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
-             <span className="text-[11px] md:text-xs font-bold text-slate-900 dark:text-white">{pageNumber}</span>
-             <span className="text-[9px] md:text-[10px] text-slate-400 font-bold">/</span>
-             <span className="text-[9px] md:text-[10px] text-slate-400 font-bold">{numPages || "--"}</span>
+          <div className="flex items-center gap-1 px-1.5 py-1 bg-slate-100 dark:bg-slate-800 rounded-lg">
+             <span className="text-[10px] md:text-xs font-bold text-slate-900 dark:text-white">{pageNumber}</span>
+             <span className="hidden xs:inline text-[9px] text-slate-400 font-bold">/</span>
+             <span className="hidden xs:inline text-[9px] text-slate-400 font-bold">{numPages || "--"}</span>
           </div>
           <button 
             onClick={() => setPageNumber(prev => Math.min(prev + 1, numPages || prev))}
             disabled={pageNumber >= (numPages || 1)}
-            className="p-1.5 md:p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-all text-slate-600 dark:text-slate-400"
+            className="p-1 md:p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-30 transition-all text-slate-600 dark:text-slate-400"
           >
             <ChevronRight size={16} />
           </button>
         </div>
 
         {/* Zoom & Transform */}
-        <div className="flex items-center gap-2 md:gap-3 pr-3 md:pr-6 border-r border-slate-200 dark:border-slate-800">
+        <div className="flex items-center gap-0.5 md:gap-2 pr-1 md:pr-4 border-r border-slate-200 dark:border-slate-800">
           <button 
             onClick={() => setScale(prev => Math.max(prev - 0.1, 0.5))}
-            className="p-1.5 md:p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400"
+            className="p-1 md:p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400"
           >
             <Minus size={16} />
           </button>
-          <span className="text-[9px] md:text-[10px] font-bold text-slate-400 min-w-[2.5rem] md:min-w-[3rem] text-center">
+          <span className="text-[9px] md:text-[11px] font-black text-slate-500 dark:text-slate-400 min-w-[2.2rem] md:min-w-[3rem] text-center">
             {Math.round(scale * 100)}%
           </span>
           <button 
             onClick={() => setScale(prev => Math.min(prev + 0.1, 2.5))}
-            className="p-1.5 md:p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400"
+            className="p-1 md:p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400"
           >
             <Plus size={16} />
           </button>
           <button 
             onClick={() => setRotation(prev => (prev + 90) % 360)}
-            className="hidden xs:flex p-1.5 md:p-2 ml-1 md:ml-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400"
+            className="hidden sm:flex p-1 md:p-2 ml-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400"
           >
             <RotateCw size={14} />
           </button>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-1.5 md:gap-2">
+        <div className="flex items-center gap-1">
           <button 
             onClick={handlePrint}
             title="Print Document"
-            className="p-2 md:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400"
+            className="hidden sm:flex p-1.5 md:p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400"
           >
             <Printer size={16} />
           </button>
           <button 
             onClick={handleDownload}
             title="Download PDF"
-            className="p-2 md:p-2.5 rounded-xl bg-primary text-white hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
+            className="p-1.5 md:p-2.5 rounded-lg bg-primary text-white hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary/20"
           >
             <Download size={16} />
           </button>
@@ -229,7 +229,7 @@ export function DocumentViewer({ url, format }: DocumentViewerProps) {
             target="_blank"
             rel="noopener noreferrer"
             title="Open in New Tab"
-            className="hidden sm:flex p-2 md:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400"
+            className="hidden lg:flex p-1.5 md:p-2.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-all text-slate-600 dark:text-slate-400"
           >
             <ExternalLink size={16} />
           </a>
@@ -254,9 +254,19 @@ export function DocumentViewer({ url, format }: DocumentViewerProps) {
             error={
               <div className="flex flex-col items-center justify-center space-y-4 p-20 text-center">
                 <FileText size={48} className="text-rose-400" />
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">Build Error</p>
-                  <p className="text-xs text-slate-500">Could not render the institutional build. Please recompile.</p>
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-slate-900 dark:text-white">Build Error</p>
+                    <p className="text-xs text-slate-500">Could not render the institutional build. Please recompile.</p>
+                  </div>
+                  {onRecompile && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onRecompile(); }}
+                      className="px-4 py-2 bg-primary text-white text-[10px] font-bold uppercase tracking-widest rounded-xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                    >
+                      Recompile Now
+                    </button>
+                  )}
                 </div>
               </div>
             }
@@ -277,7 +287,7 @@ export function DocumentViewer({ url, format }: DocumentViewerProps) {
                   renderTextLayer={true}
                   renderAnnotationLayer={true}
                   className="max-w-full"
-                  width={containerRef.current ? (containerRef.current.clientWidth - 100) : undefined}
+                  width={containerRef.current ? (containerRef.current.clientWidth < 640 ? containerRef.current.clientWidth - 32 : containerRef.current.clientWidth - 100) : undefined}
                 />
               </motion.div>
             </AnimatePresence>

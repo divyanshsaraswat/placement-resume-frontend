@@ -36,13 +36,56 @@ export default function ResumeReviewPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [isCompiling, setIsCompiling] = useState(false);
+  const [compilationStatus, setCompilationStatus] = useState("");
+  const [compilationProgress, setCompilationProgress] = useState<{ position?: number; eta_seconds?: number } | null>(null);
+  const [activeTab, setActiveTab] = useState<"code" | "preview">("preview");
   const [liveAiScore, setLiveAiScore] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showRemarkModal, setShowRemarkModal] = useState(false);
   const [selectedVersionData, setSelectedVersionData] = useState<any>(null);
+  const [compilationError, setCompilationError] = useState<string | null>(null);
 
   useEffect(() => {
     const controller = new AbortController();
+    const startInitialCompile = async (code: string, controller: AbortController) => {
+      try {
+        setIsCompiling(true);
+        setCompilationStatus("Requesting Build...");
+        const { job_id } = await resumeApi.compileAsync(code, controller.signal);
+        
+        let attempts = 0;
+        const poll = async () => {
+          if (controller.signal.aborted) return;
+          try {
+            const status = await resumeApi.getCompileStatus(job_id, controller.signal);
+            if (status.status === 'completed' && status.pdf_url) {
+              setPdfUrl(status.pdf_url);
+              setIsCompiling(false);
+              setCompilationError(null);
+            } else if (status.status === 'failed') {
+              setIsCompiling(false);
+              setCompilationError(status.error || "Latex build failed. Please check the source code for errors.");
+              // toast.error("Initial build failed");
+            } else {
+              setCompilationStatus(status.status === 'queued' ? "In Queue" : "Preparing...");
+              setCompilationProgress({ position: status.position, eta_seconds: status.eta_seconds });
+              if (attempts < 60) {
+                attempts++;
+                setTimeout(poll, 2000);
+              } else {
+                setIsCompiling(false);
+              }
+            }
+          } catch (err) {
+            if (!controller.signal.aborted) setIsCompiling(false);
+          }
+        };
+        poll();
+      } catch (err) {
+        if (!controller.signal.aborted) setIsCompiling(false);
+      }
+    };
+
     const fetchResume = async () => {
       try {
         setIsLoading(true);
@@ -55,16 +98,7 @@ export default function ResumeReviewPage() {
             setRemark(latestVersion.reviewer_remark);
           }
           if (latestVersion.format === 'latex' && latestVersion.latex_code) {
-            // Compile LaTeX to get PDF preview
-            setIsCompiling(true);
-            try {
-              const url = await resumeApi.compilePdf(latestVersion.latex_code, controller.signal);
-              setPdfUrl(url);
-            } catch (err) {
-              console.error("Failed to compile LaTeX:", err);
-            } finally {
-              setIsCompiling(false);
-            }
+            startInitialCompile(latestVersion.latex_code, controller);
           } else if (latestVersion.file_url) {
             const finalUrl = latestVersion.file_url.startsWith('/') 
               ? latestVersion.file_url 
@@ -189,10 +223,60 @@ export default function ResumeReviewPage() {
     }
   };
 
+  const handleCompile = async () => {
+    if (!latestVersion?.latex_code) return;
+    
+    try {
+      setIsCompiling(true);
+      setCompilationStatus("Starting Build...");
+      setCompilationProgress(null);
+      setCompilationError(null);
+      
+      const { job_id, queue_position, eta_seconds } = await resumeApi.compileAsync(latestVersion.latex_code);
+      setCompilationProgress({ position: queue_position, eta_seconds });
+      
+      let attempts = 0;
+      const poll = async () => {
+        try {
+          const status = await resumeApi.getCompileStatus(job_id);
+          if (status.status === 'completed' && status.pdf_url) {
+            setPdfUrl(status.pdf_url);
+            setIsCompiling(false);
+            setCompilationError(null);
+            toast.success("Build Successful");
+          } else if (status.status === 'failed') {
+            setIsCompiling(false);
+            setCompilationError(status.error || "Latex build failed. Please check the source code for errors.");
+            toast.error("Build failed");
+          } else {
+            setCompilationStatus(status.status === 'queued' ? "In Queue" : "Compiling...");
+            setCompilationProgress({ position: status.position, eta_seconds: status.eta_seconds });
+            if (attempts < 60) {
+              attempts++;
+              setTimeout(poll, 2000);
+            } else {
+              setIsCompiling(false);
+              toast.error("Build timed out");
+            }
+          }
+        } catch (err) {
+          console.error(err);
+          setIsCompiling(false);
+          toast.error("Status check failed");
+        }
+      };
+      poll();
+    } catch (err) {
+      console.error(err);
+      setIsCompiling(false);
+      toast.error("Failed to start build");
+    }
+  };
+
   return (
-    <div className="h-[calc(100vh-140px)] flex flex-col gap-6">
+    <div className="min-h-[calc(100vh-140px)] flex flex-col gap-3 lg:gap-6 pb-12 lg:pb-0 font-sans">
       {/* Review Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-4 py-3 bg-white dark:bg-slate-900/50 rounded-2xl border border-border/40 shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4 px-3 sm:px-4 py-2 sm:py-3 bg-white dark:bg-slate-900/50 rounded-xl sm:rounded-2xl border border-border/40 shadow-sm">
         <div className="flex items-center gap-4">
           <button 
             onClick={() => router.back()}
@@ -200,12 +284,12 @@ export default function ResumeReviewPage() {
           >
             <ChevronLeft size={20} />
           </button>
-          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
-              {resume.user_id?.[0]?.toUpperCase() || "S"}
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs sm:text-sm">
+              {resume.student_name?.[0]?.toUpperCase() || resume.user_id?.[0]?.toUpperCase() || "S"}
             </div>
             <div>
-              <h2 className="text-base font-bold tracking-tight text-slate-900 dark:text-white">
+              <h2 className="text-sm sm:text-base font-bold tracking-tight text-slate-900 dark:text-white">
                 {latestVersion?.type || "Resume"} Review
               </h2>
               <div className="flex items-center gap-2">
@@ -236,7 +320,7 @@ export default function ResumeReviewPage() {
           </div>
         </div>
 
-        <div className="flex items-center gap-3 w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <button 
             onClick={handleAIReview}
             disabled={isAnalyzing}
@@ -276,66 +360,152 @@ export default function ResumeReviewPage() {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col lg:flex-row gap-6 min-h-0">
-        {/* Document Preview (Left) */}
-        <div className="flex-1 rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-border/40 overflow-hidden flex flex-col">
-          <div className="px-6 py-3 bg-white/50 dark:bg-slate-900/50 border-b border-border/40 flex justify-between items-center">
+      <div className="flex-1 flex flex-col lg:flex-row gap-4 lg:gap-6 min-h-0 lg:min-h-0">
+        {/* Document View (Left Panel) - Fixed height on mobile to allow h-full children to resolve correctly */}
+        <div className="flex-none lg:flex-1 h-[500px] lg:h-auto rounded-2xl sm:rounded-3xl bg-slate-50 dark:bg-slate-900/50 border border-border/40 overflow-hidden flex flex-col lg:min-h-0">
+          <div className="px-6 py-2.5 bg-white/50 dark:bg-slate-900/50 border-b border-border/40 flex justify-between items-center gap-4 shrink-0">
             <div className="flex items-center gap-2">
-              {format === 'latex' ? <FileCode size={14} className="text-primary" /> : <FileText size={14} className="text-primary" />}
-              <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
-                {format === 'latex' ? 'LaTeX Source • Read Only' : 'Document Preview'}
-              </span>
+              {format === 'latex' ? (
+                <div className="flex bg-slate-100 dark:bg-slate-800 p-1 rounded-xl">
+                  <button 
+                    onClick={() => setActiveTab("code")}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+                      activeTab === "code" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-400 hover:text-slate-500"
+                    )}
+                  >
+                    <FileCode size={12} />
+                    Code
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab("preview")}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-all",
+                      activeTab === "preview" ? "bg-white dark:bg-slate-700 text-primary shadow-sm" : "text-slate-400 hover:text-slate-500"
+                    )}
+                  >
+                    <FileText size={12} />
+                    Preview
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <FileText size={14} className="text-primary" />
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                    Document Preview
+                  </span>
+                </>
+              )}
             </div>
-            {pdfUrl && format !== 'latex' && (
-              <a href={pdfUrl} download className="text-primary flex items-center gap-1 text-[10px] font-bold hover:underline">
-                <Download size={10} /> DOWNLOAD
+            {(pdfUrl || format === 'pdf') && (
+              <a href={pdfUrl || undefined} download className="text-primary flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest hover:underline">
+                <Download size={12} /> DOWNLOAD
               </a>
             )}
           </div>
           
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-hidden relative flex flex-col h-full">
             {format === 'latex' ? (
-              <div className="flex flex-col lg:flex-row h-full">
-                {/* Read-only LaTeX Editor */}
-                <div className="flex-1 min-h-[400px]">
-                  <MonacoEditor
-                    height="100%"
-                    defaultLanguage="latex"
-                    value={latestVersion?.latex_code || "% No LaTeX source available"}
-                    theme="vs-dark"
-                    options={{
-                      readOnly: true,
-                      minimap: { enabled: false },
-                      fontSize: 13,
-                      lineHeight: 22,
-                      wordWrap: "on",
-                      padding: { top: 16 },
-                      scrollBeyondLastLine: false,
-                      renderLineHighlight: "none",
-                      domReadOnly: true,
-                    }}
-                  />
-                </div>
+              <div className="flex-1 relative flex flex-col">
+                {/* LaTeX Editor Tab */}
+                {activeTab === "code" && (
+                  <div className="flex-1 flex flex-col min-h-0 h-full">
+                    <MonacoEditor
+                      height="100%"
+                      width="100%"
+                      defaultLanguage="latex"
+                      value={latestVersion?.latex_code || "% No LaTeX source available"}
+                      theme="vs-dark"
+                      options={{
+                        readOnly: true,
+                        minimap: { enabled: false },
+                        fontSize: 13,
+                        lineHeight: 22,
+                        wordWrap: "on",
+                        padding: { top: 20 },
+                        scrollBeyondLastLine: false,
+                        renderLineHighlight: "none",
+                        domReadOnly: true,
+                        smoothScrolling: true,
+                      }}
+                    />
+                  </div>
+                )}
                 
-                {/* Compiled PDF Preview */}
-                {(pdfUrl || isCompiling) && (
-                  <div className="flex-1 border-t lg:border-t-0 lg:border-l border-border/40 min-h-[400px]">
+                {/* PDF Preview Tab */}
+                {activeTab === "preview" && (
+                  <div className="flex-1 flex flex-col relative min-h-0 h-full">
                     {isCompiling ? (
-                      <div className="h-full flex flex-col items-center justify-center gap-4 text-slate-400">
-                        <Loader2 size={24} className="animate-spin text-primary" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest">Compiling PDF...</span>
+                      <div className="flex-1 flex flex-col items-center justify-center gap-4 bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur-[2px] z-20">
+                        <div className="relative">
+                          <Loader2 size={32} className="animate-spin text-primary" />
+                          <motion.div 
+                            className="absolute inset-0 border-2 border-primary rounded-full"
+                            initial={{ scale: 1, opacity: 0.5 }}
+                            animate={{ scale: 1.5, opacity: 0 }}
+                            transition={{ duration: 1.5, repeat: Infinity }}
+                          />
+                        </div>
+                        <div className="flex flex-col items-center gap-1.5 text-center px-6">
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-primary">{compilationStatus}</span>
+                          {compilationProgress && compilationProgress.position !== undefined && (
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">
+                              Position: {compilationProgress.position} • {compilationProgress.eta_seconds}s remaining
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    ) : compilationError ? (
+                      <div className="flex-1 flex flex-col items-center justify-center p-8 bg-rose-50/10 dark:bg-rose-900/5 backdrop-blur-[2px] z-20 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-rose-500/10 flex items-center justify-center text-rose-500 mb-6 font-sans">
+                          <AlertTriangle size={32} />
+                        </div>
+                        <div className="space-y-4 max-w-md">
+                          <div className="space-y-1">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-rose-500">Compilation Error</h3>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                              There was an issue building the PDF. This usually happens due to syntax errors in the LaTeX source.
+                            </p>
+                          </div>
+                          <div className="p-4 rounded-xl bg-slate-900 text-slate-300 text-[10px] font-mono text-left overflow-auto max-h-[150px] custom-scrollbar border border-white/5">
+                            {compilationError}
+                          </div>
+                          <button 
+                            onClick={handleCompile}
+                            className="px-6 py-2.5 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl text-[10px] font-black uppercase tracking-widest hover:scale-105 transition-all shadow-xl"
+                          >
+                            Retry Build
+                          </button>
+                        </div>
                       </div>
                     ) : pdfUrl ? (
-                      <div className="h-full p-4">
-                        <DocumentViewer url={pdfUrl} format="pdf" />
+                      <div className="h-full">
+                        <DocumentViewer 
+                          url={pdfUrl as string} 
+                          format="pdf" 
+                          onRecompile={handleCompile}
+                        />
                       </div>
-                    ) : null}
+                    ) : (
+                      <div className="h-full flex flex-col items-center justify-center gap-4 text-slate-400 p-12">
+                        <FileText size={48} strokeWidth={1} />
+                        <div className="text-center space-y-1">
+                          <p className="text-sm font-bold">No preview generated</p>
+                          <button 
+                            onClick={handleCompile}
+                            className="text-[10px] text-primary font-black uppercase tracking-widest hover:underline"
+                          >
+                            Compile Now
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
             ) : pdfUrl ? (
-              <div className="h-full min-h-[600px] p-4">
-                <DocumentViewer url={pdfUrl} format={format} />
+              <div className="flex-1 flex flex-col min-h-0">
+                <DocumentViewer url={pdfUrl as string} format={format} />
               </div>
             ) : (
               <div className="h-full flex flex-col items-center justify-center gap-4 text-slate-400 p-12">
@@ -346,10 +516,10 @@ export default function ResumeReviewPage() {
           </div>
         </div>
 
-        {/* Remarks & AI Panel (Right) */}
-        <div className="w-full lg:w-[400px] flex flex-col gap-6 overflow-y-auto pr-2 pb-10 custom-scrollbar">
+        {/* Remarks & AI Panel (Right Panel) */}
+        <div className="w-full lg:w-[400px] flex flex-col gap-4 lg:gap-6 overflow-y-auto pr-2 pb-10 custom-scrollbar shrink-0">
           {/* AI Content Breakdown */}
-          <div className="rounded-3xl bg-white dark:bg-slate-900/50 border border-border/40 p-6 space-y-5 flex flex-col">
+          <div className="rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/50 border border-border/40 p-4 sm:p-6 space-y-4 sm:space-y-5 flex flex-col shrink-0">
             <div className="flex items-center gap-2 text-primary shrink-0">
               <Sparkles size={16} />
               <h4 className="font-bold text-xs uppercase tracking-widest">AI Content Audit</h4>
@@ -363,7 +533,7 @@ export default function ResumeReviewPage() {
                     { label: "ATS Score", score: aiScore.ats_score || 0, color: "bg-emerald-500" },
                     { label: "Formatting", score: aiScore.formatting || 0, color: "bg-teal-500" },
                   ].filter(item => item.score > 0).map((item, i) => (
-                    <div key={i} className="space-y-1.5">
+                    <div key={i} className="space-y-1.5 font-sans">
                       <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
                         <span className="text-slate-400">{item.label}</span>
                         <span className={cn(
@@ -387,7 +557,7 @@ export default function ResumeReviewPage() {
                     <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">AI Suggestions</p>
                     <ul className="space-y-2.5">
                       {aiScore.suggestions.map((s: string, i: number) => (
-                        <li key={i} className="text-[11px] text-slate-600 dark:text-slate-400 flex gap-2.5 leading-normal group/item">
+                        <li key={i} className="text-[11px] text-slate-600 dark:text-slate-400 flex gap-2.5 leading-normal group/item font-sans">
                           <div className="w-1.5 h-1.5 rounded-full bg-amber-400/50 mt-1 shrink-0 group-hover/item:bg-amber-400 transition-colors" />
                           {s}
                         </li>
@@ -397,13 +567,13 @@ export default function ResumeReviewPage() {
                 )}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center gap-3 text-center py-4 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-border/60">
+              <div className="flex flex-col items-center justify-center gap-3 text-center py-6 sm:py-8 bg-slate-50/50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-border/60 font-sans">
                 <div className="w-10 h-10 rounded-xl bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center text-slate-300">
                   <Sparkles size={20} strokeWidth={1.5} />
                 </div>
                 <div className="space-y-1">
                   <p className="text-[10px] font-bold text-slate-500 uppercase tracking-extra-widest">Audit Required</p>
-                  <p className="text-[9px] text-slate-400 leading-relaxed max-w-[180px] font-medium">
+                  <p className="text-[9px] text-slate-400 leading-relaxed max-w-[180px] font-medium px-4">
                     Analyze content to receive AI-driven suggestions and scoring.
                   </p>
                 </div>
@@ -412,8 +582,8 @@ export default function ResumeReviewPage() {
           </div>
 
           {/* Remarks Section */}
-          <div className="flex-1 rounded-3xl bg-white dark:bg-slate-900/50 border border-border/40 p-6 flex flex-col space-y-4">
-            <div className="flex items-center gap-2 text-primary">
+          <div className="flex-1 rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900/50 border border-border/40 p-4 sm:p-6 flex flex-col space-y-3 sm:space-y-4 min-h-[300px]">
+            <div className="flex items-center gap-2 text-primary shrink-0">
               <MessageSquare size={16} />
               <h4 className="font-bold text-xs uppercase tracking-widest">Review Remarks</h4>
             </div>
@@ -422,19 +592,19 @@ export default function ResumeReviewPage() {
               <textarea 
                 value={remark}
                 onChange={(e) => setRemark(e.target.value)}
-                className="w-full h-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-border/40 p-4 outline-none resize-none text-sm placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:border-primary/30 transition-colors"
+                className="w-full h-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-border/40 p-4 outline-none resize-none text-sm placeholder:text-slate-300 dark:placeholder:text-slate-600 focus:border-primary/30 transition-colors font-sans"
                 placeholder="Type your feedback or remarks here..."
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-2 shrink-0">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Quick Actions</p>
               <div className="flex flex-wrap gap-2">
                 {["Excellent Resume", "Quantify Impact", "Improve Formatting", "Add More Projects"].map(chip => (
                   <button 
                     key={chip}
                     onClick={() => setRemark(prev => prev ? `${prev}\n${chip}` : chip)}
-                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 hover:text-primary hover:bg-primary/5 transition-all uppercase tracking-wider"
+                    className="px-3 py-1.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-[10px] font-bold text-slate-500 hover:text-primary hover:bg-primary/5 transition-all uppercase tracking-wider font-sans"
                   >
                     {chip}
                   </button>
@@ -454,7 +624,7 @@ export default function ResumeReviewPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800"
+              className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl border border-slate-200 dark:border-slate-800 font-sans"
             >
               <div className="p-6 border-b border-border flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
                 <div className="space-y-1">

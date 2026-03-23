@@ -33,6 +33,8 @@ export default function FacultyValidatePage() {
   const [search, setSearch] = useState("");
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<"year" | "branch">("year");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [isBulkApproving, setIsBulkApproving] = useState(false);
   const [filters, setFilters] = useState({
     years: [] as number[],
     departments: [] as string[],
@@ -76,6 +78,58 @@ export default function FacultyValidatePage() {
     fetchQueue(controller.signal);
     return () => controller.abort();
   }, [fetchQueue, fetchStats]);
+
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(resumes.map(r => r.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelectRow = (id: string) => {
+    setSelectedIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
+
+  const handleQuickApprove = async (resumeId: string, versionId: string) => {
+    if (!versionId) {
+      toast.error("Version ID missing for this resume");
+      return;
+    }
+    const toastId = toast.loading("Approving resume...");
+    try {
+      await resumeApi.updateVersionStatus(resumeId, versionId, 'approved');
+      toast.success("Resume approved", { id: toastId });
+      fetchQueue();
+      fetchStats();
+    } catch (err) {
+      toast.error("Failed to approve resume", { id: toastId });
+    }
+  };
+
+  const handleBulkApprove = async () => {
+    if (selectedIds.length === 0) return;
+    setIsBulkApproving(true);
+    const toastId = toast.loading(`Approving ${selectedIds.length} resumes...`);
+    try {
+      await Promise.all(selectedIds.map(async (id) => {
+        const resume = resumes.find(r => r.id === id);
+        if (resume && resume.versionId) {
+          return resumeApi.updateVersionStatus(id, resume.versionId, 'approved');
+        }
+      }));
+      toast.success(`${selectedIds.length} resumes approved!`, { id: toastId });
+      setSelectedIds([]);
+      fetchQueue();
+      fetchStats();
+    } catch (err) {
+      toast.error("Bulk approval failed", { id: toastId });
+    } finally {
+      setIsBulkApproving(false);
+    }
+  };
 
   const activeFiltersCount = filters.years.length + filters.departments.length + (filters.group ? 1 : 0);
 
@@ -209,9 +263,21 @@ export default function FacultyValidatePage() {
               )}
             </button>
 
-            <button className="w-full sm:flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 whitespace-nowrap">
-              Bulk Approve
-            </button>
+            <AnimatePresence>
+              {selectedIds.length > 0 && (
+                <motion.button
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95, y: 10 }}
+                  onClick={handleBulkApprove}
+                  disabled={isBulkApproving}
+                  className="w-full sm:flex-1 px-4 py-2.5 rounded-lg bg-primary text-white text-[11px] font-bold uppercase tracking-wider shadow-lg shadow-primary/20 hover:bg-primary/90 transition-all active:scale-95 whitespace-nowrap flex items-center justify-center gap-2"
+                >
+                  {isBulkApproving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle size={14} />}
+                  Bulk Approve ({selectedIds.length})
+                </motion.button>
+              )}
+            </AnimatePresence>
           </div>
         </div>
 
@@ -380,6 +446,14 @@ export default function FacultyValidatePage() {
             <table className="w-full text-left min-w-[640px]">
               <thead>
                 <tr className="border-b border-slate-100 dark:border-slate-800">
+                  <th className="px-5 py-4 w-10">
+                    <button 
+                      onClick={() => handleSelectAll(selectedIds.length !== resumes.length)}
+                      className="w-4 h-4 rounded border border-slate-300 dark:border-slate-700 flex items-center justify-center transition-colors hover:border-primary"
+                    >
+                      {selectedIds.length === resumes.length && resumes.length > 0 && <div className="w-2 h-2 bg-primary rounded-[1px]" />}
+                    </button>
+                  </th>
                   <th className="px-5 py-4 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">Student</th>
                   <th className="px-5 py-4 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold">Details</th>
                   <th className="px-5 py-4 text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-[0.2em] font-bold text-center">AI Score</th>
@@ -396,8 +470,25 @@ export default function FacultyValidatePage() {
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.04 }}
-                      className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors cursor-pointer"
+                      className={cn(
+                        "group hover:bg-slate-50/50 dark:hover:bg-slate-800/20 transition-colors cursor-pointer",
+                        selectedIds.includes(item.id) && "bg-primary/[0.02] dark:bg-primary/[0.02]"
+                      )}
+                      onClick={() => handleSelectRow(item.id)}
                     >
+                      <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                        <button 
+                          onClick={() => handleSelectRow(item.id)}
+                          className={cn(
+                            "w-4 h-4 rounded border transition-all flex items-center justify-center",
+                            selectedIds.includes(item.id) 
+                              ? "bg-primary border-primary text-white" 
+                              : "border-slate-300 dark:border-slate-700 hover:border-primary"
+                          )}
+                        >
+                          {selectedIds.includes(item.id) && <div className="w-2 h-2 bg-white rounded-[1px]" />}
+                        </button>
+                      </td>
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-[11px] shrink-0">
@@ -429,14 +520,18 @@ export default function FacultyValidatePage() {
                           {item.status}
                         </span>
                       </td>
-                      <td className="px-5 py-4">
-                        <div className="flex justify-end gap-2 md:opacity-0 md:group-hover:opacity-100 md:translate-x-2 md:group-hover:translate-x-0 transition-all">
+                      <td className="px-5 py-4" onClick={(e) => e.stopPropagation()}>
+                        <div className="flex justify-end gap-2 transition-all">
                           <Link href={`${basePath}/${item.id}`}>
                             <button className="p-2 rounded-lg text-primary bg-primary/5 hover:bg-primary/10 border border-primary/10 transition-all" title="Review">
                               <Eye size={15} />
                             </button>
                           </Link>
-                          <button className="p-2 rounded-lg text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 transition-all" title="Quick Approve">
+                          <button 
+                            onClick={() => handleQuickApprove(item.id, item.versionId)}
+                            className="p-2 rounded-lg text-emerald-600 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 transition-all" 
+                            title="Quick Approve"
+                          >
                             <CheckCircle size={15} />
                           </button>
                         </div>
