@@ -353,6 +353,23 @@ export default function ResumeEditorPage() {
     }
   };
 
+  const handleCancelCompile = () => {
+    // Close WebSocket
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    // Cleanup the job on the backend
+    const jobId = extractJobId(pdfUrl);
+    if (jobId) {
+      resumeApi.cleanupLatexJob(jobId).catch(console.error);
+    }
+    setIsCompiling(false);
+    setCompileStatus(null);
+    setCompileError(null);
+    toast.info("Compilation cancelled");
+  };
+
   // Polling fallback (if WebSocket connection fails)
   const pollCompileStatus = useCallback(async (jobId: string) => {
     const poll = async () => {
@@ -903,6 +920,15 @@ export default function ResumeEditorPage() {
                             </p>
                           </div>
                         )}
+
+                        {/* Cancel Button */}
+                        <button
+                          onClick={handleCancelCompile}
+                          className="mt-4 flex items-center gap-2 px-5 py-2 rounded-xl bg-white/10 hover:bg-rose-500/20 border border-white/10 hover:border-rose-500/30 text-slate-300 hover:text-rose-400 text-[10px] font-bold uppercase tracking-widest transition-all"
+                        >
+                          <X size={14} />
+                          Cancel Build
+                        </button>
                       </motion.div>
                     </motion.div>
                   )}

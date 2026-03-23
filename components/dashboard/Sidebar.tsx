@@ -7,22 +7,34 @@ import { dashboardNavItems } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/Logo";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
+  isCollapsed: boolean;
+  onToggleCollapse: () => void;
 }
 
-export function Sidebar({ isOpen, onClose }: SidebarProps) {
+export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   const { user } = useAuth();
   const pathname = usePathname();
-  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const filteredItems = dashboardNavItems.filter((item) =>
     user ? item.roles.includes(user.role) : false
   );
+
+  // Responsive override: Always expanded on < 1024px
+  const [isLargeScreen, setIsLargeScreen] = useState(true);
+  useEffect(() => {
+    const handleResize = () => setIsLargeScreen(window.innerWidth >= 1024);
+    handleResize(); // Initial check
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const showCollapsed = isCollapsed && isLargeScreen;
 
   return (
     <>
@@ -42,8 +54,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       <motion.aside
         initial={false}
         animate={{ 
-          width: isCollapsed ? 84 : 280,
-          x: isOpen ? 0 : (typeof window !== 'undefined' && window.innerWidth < 1024 ? -280 : 0)
+          width: showCollapsed ? 84 : 280,
+          x: isOpen ? 0 : (!isLargeScreen ? -280 : 0)
         }}
         transition={{ type: "spring", damping: 25, stiffness: 200 }}
         className={cn(
@@ -52,10 +64,10 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         )}
       >
       {/* Sidebar Header */}
-      <div className={cn("flex items-center justify-between", isCollapsed ? "p-6" : "p-8")}>
-        <div className={cn("flex items-center gap-3 text-primary w-full", isCollapsed && "justify-center")}>
+      <div className={cn("flex items-center justify-between", showCollapsed ? "p-6" : "p-8")}>
+        <div className={cn("flex items-center gap-3 text-primary w-full", showCollapsed && "justify-center")}>
           <Link href="/dashboard" className="flex items-center gap-3 px-2 group/logo">
-            <Logo className="h-8 w-auto" iconOnly={isCollapsed} />
+            <Logo className="h-8 w-auto" iconOnly={showCollapsed} />
           </Link>
         </div>
 
@@ -80,7 +92,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
               <div 
                 className={cn(
                   "flex items-center rounded-2xl transition-all group relative",
-                  isCollapsed ? "justify-center h-12 w-12 mx-auto" : "gap-4 px-4 py-3",
+                  showCollapsed ? "justify-center h-12 w-12 mx-auto" : "gap-4 px-4 py-3",
                   isActive 
                     ? "bg-slate-50 dark:bg-slate-900 text-primary font-medium" 
                     : "text-slate-400 hover:text-foreground hover:bg-slate-50/50 dark:hover:bg-slate-900/50"
@@ -93,7 +105,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                   />
                 )}
                 <Icon size={20} strokeWidth={isActive ? 2 : 1} className={cn("shrink-0", isActive && "text-primary")} />
-                {!isCollapsed && (
+                {!showCollapsed && (
                   <span className="text-sm tracking-tight truncate">{item.title}</span>
                 )}
               </div>
@@ -101,13 +113,13 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           );
         })}
       </nav>
-      {/* Footer Toggle - Strictly desktop only (2xl+) */}
-      <div className="p-6 hidden 2xl:block">
+      {/* Footer Toggle - Enable for lg+ (1024px+) */}
+      <div className="p-6 hidden lg:block">
         <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
+          onClick={onToggleCollapse}
           className="w-full h-11 rounded-2xl bg-slate-100/50 dark:bg-slate-900/50 transition-all hover:bg-primary/10 hover:text-primary flex items-center justify-center text-slate-400 dark:text-slate-500 group border border-transparent hover:border-primary/20"
         >
-          {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+          {showCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
     </motion.aside>
