@@ -95,19 +95,19 @@ export function EditorHeader({
         <div className="flex items-center gap-1 sm:mr-2 md:mr-4 sm:border-r border-border sm:pr-2 md:pr-4">
            <button 
              onClick={onSave}
-             disabled={isSaving || status === 'approved'}
+             disabled={isSaving || status === 'approved' || status === 'submitted'}
              className={cn(
                "flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold transition-all",
-               status === 'approved'
+               (status === 'approved' || status === 'submitted')
                  ? "text-slate-400 dark:text-slate-600 cursor-not-allowed opacity-60"
                  : hasUnsavedChanges 
                    ? "bg-primary text-white shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-95" 
                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
              )}
            >
-             <Save size={16} strokeWidth={hasUnsavedChanges && status !== 'approved' ? 2 : 1.5} className={cn(isSaving ? "animate-spin" : "")} />
+             <Save size={16} strokeWidth={hasUnsavedChanges && status !== 'approved' && status !== 'submitted' ? 2 : 1.5} className={cn(isSaving ? "animate-spin" : "")} />
              <span className="hidden lg:inline">
-               {isSaving ? "Saving..." : status === 'approved' ? "Verified" : hasUnsavedChanges ? "Save Changes" : "Changes Saved"}
+               {isSaving ? "Saving..." : status === 'approved' ? "Verified" : status === 'submitted' ? "Under Review" : hasUnsavedChanges ? "Save Changes" : "Changes Saved"}
              </span>
            </button>
         </div>
@@ -131,14 +131,14 @@ export function EditorHeader({
             </button>
             <button 
               onClick={onAIOpen}
-              disabled={(user?.llmCredits !== undefined && user.llmCredits <= 0)}
+              disabled={(user?.llmCredits !== undefined && user.llmCredits <= 0) || status === 'submitted' || status === 'approved'}
               className={cn(
                 "flex items-center justify-center sm:gap-2 p-2 sm:px-4 sm:py-2 rounded-xl text-xs font-bold transition-all border",
-                (user?.llmCredits !== undefined && user.llmCredits <= 0)
+                ((user?.llmCredits !== undefined && user.llmCredits <= 0) || status === 'submitted' || status === 'approved')
                   ? "bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed"
                   : "bg-primary/10 text-primary border-primary/20 hover:bg-primary/20"
               )}
-              title={(user?.llmCredits !== undefined && user.llmCredits <= 0) ? "Insufficient credits" : "AI Review"}
+              title={(user?.llmCredits !== undefined && user.llmCredits <= 0) ? "Insufficient credits" : (status === 'submitted' || status === 'approved') ? "Document Locked" : "AI Review"}
             >
               <Sparkles size={14} className={cn((user?.llmCredits !== undefined && user.llmCredits <= 0) ? "opacity-50" : "animate-pulse")} />
               <span className="hidden sm:inline">AI Review</span>

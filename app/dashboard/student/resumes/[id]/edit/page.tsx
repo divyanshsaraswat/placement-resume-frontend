@@ -174,6 +174,7 @@ export default function ResumeEditorPage() {
   }, [isResizing]);
 
   const handleSave = async () => {
+    if (isSaving || latestVersionData?.status === 'approved' || latestVersionData?.status === 'submitted') return;
     try {
       setIsSaving(true);
       await resumeApi.saveResume(id as string, { content: code });
