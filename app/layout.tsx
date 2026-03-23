@@ -5,6 +5,40 @@ export const metadata: Metadata = {
   title: "SYSUME | AI-Powered Institutional Intelligence",
   description: "Advanced placement management system with AI-powered resume enhancement, secure LaTeX editing, and role-based workflows for MNIT by Scasys Technologies.",
   keywords: ["SYSUME", "Scasys Technologies", "Placement Management", "AI Resume", "LaTeX Editor", "MNIT", "Resume Intelligence"],
+  authors: [{ name: "Scasys Technologies" }],
+  creator: "Scasys Technologies",
+  publisher: "Scasys Technologies",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: "https://sysume.com", // Adjust if there's a different production URL
+    siteName: "SYSUME",
+    title: "SYSUME | AI-Powered Institutional Intelligence",
+    description: "Advanced placement management system with AI-powered resume enhancement and role-based workflows.",
+    images: [
+      {
+        url: "/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "SYSUME - AI-Powered Institutional Intelligence",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SYSUME | AI-Powered Institutional Intelligence",
+    description: "Advanced placement management system with AI-powered resume enhancement and role-based workflows.",
+    images: ["/og-image.png"],
+    creator: "@sysume", // Adjust if there's a specific twitter handle
+  },
+  icons: {
+    icon: "/logo.svg",
+    apple: "/logo.svg", // Using logo.svg as a placeholder for apple-touch-icon if no dedicated png exists
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 import { ThemeProvider } from "@/components/theme-provider";
