@@ -759,9 +759,9 @@ export default function ResumeEditorPage() {
           <>
             {/* Desktop: Resizable Panel Layout */}
             <div className="hidden md:flex flex-1 min-h-0">
-              <PanelGroup orientation="horizontal" id="latex-editor-layout">
+              <PanelGroup orientation="horizontal" id="latex-editor-layout" style={{ overflow: 'hidden' }}>
                 {/* Left Panel: Editor */}
-                <Panel id="editor" defaultSize="60%" minSize="20%" maxSize="80%">
+                <Panel id="editor" defaultSize="60%" minSize="25%" maxSize="75%">
                   <div className="border-r border-border bg-background flex flex-col overflow-hidden h-full">
                     <div className="flex-1 overflow-hidden relative h-full">
                       <Editor
@@ -800,19 +800,19 @@ export default function ResumeEditorPage() {
                 </Panel>
 
                 {/* Resize Handle */}
-                <PanelResizeHandle className="w-1 group relative hover:bg-primary/30 transition-colors z-10 flex items-center justify-center data-[active]:bg-primary/50">
-                  <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 left-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="bg-slate-900 border border-border p-1 rounded-full flex flex-col gap-1 shadow-xl shadow-black/20">
+                <PanelResizeHandle className="w-2 group relative bg-border/30 hover:bg-primary/30 transition-colors z-10 flex items-center justify-center data-[active]:bg-primary/50">
+                  <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 left-1/2 transition-transform group-hover:scale-110">
+                    <div className="bg-slate-900 border border-border/60 p-1.5 rounded-full flex flex-col gap-1 shadow-xl shadow-black/30">
                       <div className="flex gap-1 px-1 py-1">
-                        <div className="w-1 h-3 bg-border rounded-full" />
-                        <div className="w-1 h-3 bg-border rounded-full" />
+                        <div className="w-1 h-4 bg-slate-500 group-hover:bg-primary rounded-full transition-colors" />
+                        <div className="w-1 h-4 bg-slate-500 group-hover:bg-primary rounded-full transition-colors" />
                       </div>
                     </div>
                   </div>
                 </PanelResizeHandle>
 
                 {/* Right Panel: Preview */}
-                <Panel id="preview" defaultSize="40%" minSize="20%" maxSize="80%">
+                <Panel id="preview" defaultSize="40%" minSize="25%" maxSize="75%">
                   <div className="flex-1 flex flex-col bg-slate-50/50 dark:bg-slate-900/10 overflow-hidden relative h-full">
 
               {/* Recompile Toolbar - Above PDF */}
