@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
 import Editor from "@monaco-editor/react";
 import { 
   FileText,
@@ -62,8 +63,6 @@ export default function ResumeEditorPage() {
   const [compileError, setCompileError] = useState<string | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
-  const [leftWidth, setLeftWidth] = useState(60); // percentage
-  const [isResizing, setIsResizing] = useState(false);
   const [showRemarkModal, setShowRemarkModal] = useState(false);
   const [latestVersionData, setLatestVersionData] = useState<any>(null);
   const [confirmConfig, setConfirmConfig] = useState<{
@@ -147,31 +146,6 @@ export default function ResumeEditorPage() {
     toast.success("Document download initialized");
   };
 
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      const newWidth = (e.clientX / window.innerWidth) * 100;
-      if (newWidth > 20 && newWidth < 80) {
-        setLeftWidth(newWidth);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-      document.body.style.cursor = "default";
-    };
-
-    if (isResizing) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-      document.body.style.cursor = "col-resize";
-    }
-
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isResizing]);
 
   const handleSave = async () => {
     if (isSaving || latestVersionData?.status === 'approved' || latestVersionData?.status === 'submitted') return;
@@ -779,80 +753,68 @@ export default function ResumeEditorPage() {
       )}
 
       <main className={cn(
-        "flex-1 flex flex-col md:flex-row min-h-0 bg-background",
-        format === 'latex' && isResizing && "select-none"
+        "flex-1 flex flex-col md:flex-row min-h-0 bg-background"
       )}>
         {format === 'latex' ? (
           <>
-            {/* Left Pane: Editor */}
-            <div 
-              className={cn(
-                "border-r border-border bg-background flex flex-col relative overflow-hidden h-full transition-all duration-300",
-                mobileView === "editor" ? "flex" : "hidden md:flex"
-              )}
-              style={{ width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : `${leftWidth}%` }}
-            >
-              <div className="flex-1 overflow-hidden relative h-full">
-                <Editor
-                  height="100%"
-                  language="latex"
-                  theme="institutional-dark"
-                  value={code}
-                  beforeMount={handleEditorWillMount}
-                  onChange={(val) => setCode(val || "")}
-                  options={{
-                    minimap: { enabled: false },
-                    fontSize: 14,
-                    cursorSmoothCaretAnimation: "on",
-                    smoothScrolling: true,
-                    fontFamily: "var(--font-mono)",
-                    lineNumbers: "on",
-                    padding: { top: 24, bottom: 24 },
-                    glyphMargin: false,
-                    folding: true,
-                    lineDecorationsWidth: 10,
-                    lineNumbersMinChars: 3,
-                    overviewRulerBorder: false,
-                    hideCursorInOverviewRuler: true,
-                    renderLineHighlight: 'all',
-                    scrollbar: {
-                      vertical: 'visible',
-                      horizontal: 'visible',
-                      useShadows: false,
-                      verticalScrollbarSize: 10,
-                      horizontalScrollbarSize: 10
-                    }
-                  }}
-                />
-              </div>
-            </div>
-
-            {/* Resizable Divider - Hidden on Mobile */}
-            <div 
-              onMouseDown={() => setIsResizing(true)}
-              className={cn(
-                "hidden md:flex w-1 group relative cursor-col-resize hover:bg-primary/30 transition-colors z-10 items-center justify-center",
-                isResizing && "bg-primary/50"
-              )}
-            >
-               <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 left-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="bg-slate-900 border border-border p-1 rounded-full flex flex-col gap-1 shadow-xl shadow-black/20">
-                     <div className="flex gap-1 px-1 py-1">
-                        <div className="w-1 h-3 bg-border rounded-full" />
-                        <div className="w-1 h-3 bg-border rounded-full" />
-                     </div>
+            {/* Desktop: Resizable Panel Layout */}
+            <div className="hidden md:flex flex-1 min-h-0">
+              <PanelGroup orientation="horizontal" id="latex-editor-layout">
+                {/* Left Panel: Editor */}
+                <Panel id="editor" defaultSize="60%" minSize="20%" maxSize="80%">
+                  <div className="border-r border-border bg-background flex flex-col overflow-hidden h-full">
+                    <div className="flex-1 overflow-hidden relative h-full">
+                      <Editor
+                        height="100%"
+                        language="latex"
+                        theme="institutional-dark"
+                        value={code}
+                        beforeMount={handleEditorWillMount}
+                        onChange={(val) => setCode(val || "")}
+                        options={{
+                          minimap: { enabled: false },
+                          fontSize: 14,
+                          cursorSmoothCaretAnimation: "on",
+                          smoothScrolling: true,
+                          fontFamily: "var(--font-mono)",
+                          lineNumbers: "on",
+                          padding: { top: 24, bottom: 24 },
+                          glyphMargin: false,
+                          folding: true,
+                          lineDecorationsWidth: 10,
+                          lineNumbersMinChars: 3,
+                          overviewRulerBorder: false,
+                          hideCursorInOverviewRuler: true,
+                          renderLineHighlight: 'all',
+                          scrollbar: {
+                            vertical: 'visible',
+                            horizontal: 'visible',
+                            useShadows: false,
+                            verticalScrollbarSize: 10,
+                            horizontalScrollbarSize: 10
+                          }
+                        }}
+                      />
+                    </div>
                   </div>
-               </div>
-            </div>
+                </Panel>
 
-            {/* Right Pane: Preview */}
-            <div 
-              className={cn(
-                "flex-1 flex flex-col bg-slate-50/50 dark:bg-slate-900/10 transition-all duration-300 overflow-hidden relative",
-                mobileView === "preview" ? "flex" : "hidden md:flex"
-              )}
-              style={{ width: typeof window !== 'undefined' && window.innerWidth < 768 ? '100%' : `${100 - leftWidth}%` }}
-            >
+                {/* Resize Handle */}
+                <PanelResizeHandle className="w-1 group relative hover:bg-primary/30 transition-colors z-10 flex items-center justify-center data-[active]:bg-primary/50">
+                  <div className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 left-1/2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="bg-slate-900 border border-border p-1 rounded-full flex flex-col gap-1 shadow-xl shadow-black/20">
+                      <div className="flex gap-1 px-1 py-1">
+                        <div className="w-1 h-3 bg-border rounded-full" />
+                        <div className="w-1 h-3 bg-border rounded-full" />
+                      </div>
+                    </div>
+                  </div>
+                </PanelResizeHandle>
+
+                {/* Right Panel: Preview */}
+                <Panel id="preview" defaultSize="40%" minSize="20%" maxSize="80%">
+                  <div className="flex-1 flex flex-col bg-slate-50/50 dark:bg-slate-900/10 overflow-hidden relative h-full">
+
               {/* Recompile Toolbar - Above PDF */}
               <div className="flex items-center px-3 py-2   dark:bg-slate-900/80 backdrop-blur-sm shrink-0">
                 <button
@@ -964,6 +926,79 @@ export default function ResumeEditorPage() {
                         <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Awaiting Build</p>
                         <p className="text-[10px] font-light text-muted-foreground">Perform a recompile to render the <br /> institutional document preview</p>
                      </div>
+                  </div>
+                )}
+              </div>
+                  </div>
+            </Panel>
+              </PanelGroup>
+            </div>
+
+            {/* Mobile: Full-width Editor or Preview */}
+            <div className={cn("md:hidden flex-1 flex flex-col min-h-0", mobileView === "editor" ? "flex" : "hidden")}>
+              <div className="flex-1 overflow-hidden relative h-full bg-background">
+                <Editor
+                  height="100%"
+                  language="latex"
+                  theme="institutional-dark"
+                  value={code}
+                  beforeMount={handleEditorWillMount}
+                  onChange={(val) => setCode(val || "")}
+                  options={{
+                    minimap: { enabled: false },
+                    fontSize: 14,
+                    cursorSmoothCaretAnimation: "on",
+                    smoothScrolling: true,
+                    fontFamily: "var(--font-mono)",
+                    lineNumbers: "on",
+                    padding: { top: 24, bottom: 24 },
+                    glyphMargin: false,
+                    folding: true,
+                    lineDecorationsWidth: 10,
+                    lineNumbersMinChars: 3,
+                    overviewRulerBorder: false,
+                    hideCursorInOverviewRuler: true,
+                    renderLineHighlight: 'all',
+                    scrollbar: {
+                      vertical: 'visible',
+                      horizontal: 'visible',
+                      useShadows: false,
+                      verticalScrollbarSize: 10,
+                      horizontalScrollbarSize: 10
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            <div className={cn("md:hidden flex-1 flex flex-col min-h-0 bg-slate-50/50 dark:bg-slate-900/10", mobileView === "preview" ? "flex" : "hidden")}>
+              <div className="flex items-center px-3 py-2 dark:bg-slate-900/80 backdrop-blur-sm shrink-0">
+                <button
+                  onClick={handleCompile}
+                  disabled={isCompiling}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white text-[11px] font-bold uppercase tracking-wider transition-all shadow-md shadow-emerald-500/25 disabled:opacity-60"
+                >
+                  {isCompiling ? (
+                    <Loader2 size={13} className="animate-spin" />
+                  ) : (
+                    <Play size={13} className="fill-current" />
+                  )}
+                  {isCompiling ? "Building..." : "Recompile"}
+                </button>
+              </div>
+              <div className="flex-1 flex items-center justify-center p-4 md:p-8 overflow-auto">
+                {pdfUrl ? (
+                  <div className="w-full max-w-4xl h-full">
+                    <DocumentViewer url={pdfUrl} format="pdf" />
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center text-center space-y-6 opacity-30 my-20">
+                    <div className="w-16 h-16 rounded-full border border-dashed border-primary/50 flex items-center justify-center">
+                      <FileText strokeWidth={0.5} className="text-primary w-8 h-8" />
+                    </div>
+                    <div className="space-y-2">
+                      <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary">Awaiting Build</p>
+                      <p className="text-[10px] font-light text-muted-foreground">Perform a recompile to render the <br /> institutional document preview</p>
+                    </div>
                   </div>
                 )}
               </div>
