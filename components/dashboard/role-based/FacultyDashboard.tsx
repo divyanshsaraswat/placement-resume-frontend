@@ -83,8 +83,8 @@ export function FacultyDashboard() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-3xl font-display font-bold">Faculty Portal</h2>
-          <p className="text-muted-foreground">Manage resume validations and student progress.</p>
+          <h2 className="text-4xl font-display font-bold tracking-tight">Faculty Portal</h2>
+          <p className="text-sm text-muted-foreground font-light">Manage resume validations and student progress.</p>
         </div>
         <Link href="/dashboard/faculty/validate">
           <button className="btn-primary group h-12">

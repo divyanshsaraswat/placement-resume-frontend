@@ -82,7 +82,7 @@ export default function AuditLogsPage() {
       <div className="flex justify-between items-end">
         <div className="space-y-1">
           <h1 className="text-4xl font-display font-bold text-primary">Audit Pipeline</h1>
-          <p className="text-muted-foreground font-light text-lg">Real-time system-wide activity monitoring and security logging.</p>
+          <p className="text-sm text-muted-foreground font-light">Real-time system-wide activity monitoring and security logging.</p>
         </div>
         <button 
           onClick={handleExport}

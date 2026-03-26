@@ -176,7 +176,7 @@ export default function UserManagementPage() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
         <div className="space-y-1">
           <h1 className="text-4xl font-display font-bold text-primary dark:text-blue-500">User Management</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-light text-lg">Manage platform users, assign roles, and control access levels.</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-light">Manage platform users, assign roles, and control access levels.</p>
         </div>
         <button 
           onClick={() => setIsAddUserOpen(true)}

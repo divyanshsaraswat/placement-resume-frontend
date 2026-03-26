@@ -93,7 +93,7 @@ export default function AdminStudentsPage() {
             <span className="text-xs font-bold uppercase tracking-[0.2em]">Institutional Intelligence</span>
           </div>
           <h1 className="text-4xl font-display font-bold">Placement Analytics</h1>
-          <p className="text-muted-foreground text-lg max-w-2xl">
+          <p className="text-sm text-muted-foreground font-light max-w-2xl">
             Real-time overview of student readiness, validation progress, and departmental performance across the batch.
           </p>
         </div>

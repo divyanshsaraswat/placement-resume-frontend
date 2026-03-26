@@ -190,7 +190,7 @@ export default function FacultyValidatePage() {
               {pathname.startsWith('/dashboard/spc') ? 'SPC Panel' : 'Faculty Panel'}
             </p>
           </div>
-          <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-800 dark:text-white">
+          <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-800 dark:text-white">
             Validation Queue
           </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400 font-light">

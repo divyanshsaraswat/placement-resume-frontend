@@ -114,14 +114,14 @@ export default function SettingsPage() {
   };
 
   const containerVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
+    hidden: { opacity: 0, y: 8 },
     visible: { 
       opacity: 1, 
       y: 0,
       transition: { 
-        duration: 0.6, 
+        duration: 0.25, 
         ease: [0.22, 1, 0.36, 1],
-        staggerChildren: 0.1
+        staggerChildren: 0.05
       }
     }
   };
@@ -144,7 +144,7 @@ export default function SettingsPage() {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div className="flex flex-col gap-2">
           <h1 className="text-4xl font-bold tracking-tight text-slate-900 dark:text-white">Settings</h1>
-          <p className="text-slate-500 dark:text-slate-400 font-light">
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-light">
             Manage your account preferences and institutional configurations.
           </p>
         </div>

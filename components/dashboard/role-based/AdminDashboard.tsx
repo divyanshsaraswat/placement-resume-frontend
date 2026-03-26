@@ -65,8 +65,8 @@ export function AdminDashboard() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-3xl font-display font-bold">Admin Console</h2>
-          <p className="text-muted-foreground">High-level system management and audit control.</p>
+          <h2 className="text-4xl font-display font-bold tracking-tight">Admin Console</h2>
+          <p className="text-sm text-muted-foreground font-light">High-level system management and audit control.</p>
         </div>
         <div className="flex items-center gap-3">
           <Link href="/dashboard/admin/users">

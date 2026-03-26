@@ -78,8 +78,8 @@ export function SPCDashboard() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-3xl font-display font-bold text-slate-900 dark:text-white">SPC Dashboard</h2>
-          <p className="text-slate-500 dark:text-slate-400 font-light">Aggregate placement intelligence and readiness tracking.</p>
+          <h2 className="text-4xl font-display font-bold tracking-tight text-slate-900 dark:text-white">SPC Dashboard</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400 font-light">Aggregate placement intelligence and readiness tracking.</p>
         </div>
       </div>
 

@@ -74,8 +74,8 @@ export function StudentDashboard() {
     <div className="space-y-8">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-3xl font-display font-bold">Student Hub</h2>
-          <p className="text-muted-foreground">Track your resume performance and placement readiness.</p>
+          <h2 className="text-4xl font-display font-bold tracking-tight">Student Hub</h2>
+          <p className="text-sm text-muted-foreground font-light">Track your resume performance and placement readiness.</p>
         </div>
         <button 
           onClick={() => setIsDialogOpen(true)}

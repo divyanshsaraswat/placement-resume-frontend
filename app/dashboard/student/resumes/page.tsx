@@ -280,7 +280,7 @@ export default function StudentResumesPage() {
     <div className="max-w-6xl mx-auto space-y-16 py-8">
       {/* Page Header */}
       <div className="space-y-1">
-        <h1 className="text-2xl md:text-3xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Documents</h1>
+        <h1 className="text-3xl md:text-4xl font-semibold tracking-tight text-slate-800 dark:text-slate-100">Documents</h1>
         <p className="text-sm text-slate-500 dark:text-slate-400 font-light pr-4">Your professional document pipeline and institutional status.</p>
       </div>
 
