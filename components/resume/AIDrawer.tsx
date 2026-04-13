@@ -280,6 +280,13 @@ export function AIDrawer({
                                       .trim();
                                     return `\n\n\`\`\`latex\n${formatted}\n\`\`\`\n\n`;
                                   });
+                                  // Split bold-used-as-heading running directly into next paragraph
+                                  // e.g. **Highlight Achievements**In each project → **Highlight Achievements**\n\nIn each project
+                                  text = text.replace(/(\*\*[^*\n]{3,}\*\*)([A-Z])/g, '$1\n\n$2');
+                                  // Split heading text that has no ## but directly runs into a sentence
+                                  // e.g. "Emphasizing Projects in Your LaTeX ResumeTo emphasize"
+                                  // Detect CamelCase boundary between a Title-case word and "To/In/Use/Here/Create/By/For"
+                                  text = text.replace(/([a-z])(To |In |Use |Here |By |For |Create |Add |Make |You |With |When |While |Consider |This |These |The |A )/g, '$1\n\n$2');
                                   // Insert newlines before inline list markers like "* Item" not already at start of line
                                   text = text.replace(/([^\n])\* /g, '$1\n\n* ');
                                   // Split inline numbered list items
