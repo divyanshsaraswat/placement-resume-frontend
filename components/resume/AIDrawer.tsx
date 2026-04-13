@@ -256,10 +256,10 @@ export function AIDrawer({
                                       return (
                                         <div className="relative my-3 rounded-xl overflow-hidden border border-slate-700/50 group">
                                           <div className="flex items-center justify-between px-4 py-2 bg-slate-800">
-                                            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{className?.replace('language-', '') || 'code'}</span>
+                                            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{className?.replace('language-', '') || 'LaTeX'}</span>
                                             <CopyButton text={codeStr} />
                                           </div>
-                                          <pre className="overflow-x-auto p-4 bg-slate-950 text-slate-100 text-xs font-mono leading-relaxed whitespace-pre-wrap break-all scrollbar-hide"><code>{codeStr}</code></pre>
+                                          <pre className="overflow-x-auto p-4 bg-slate-950 text-slate-100 text-xs font-mono leading-relaxed whitespace-pre-wrap break-words scrollbar-hide"><code>{codeStr}</code></pre>
                                         </div>
                                       );
                                     }
@@ -272,9 +272,14 @@ export function AIDrawer({
                               >
                                 {(() => {
                                   let text = msg.content;
-                                  // Detect long inline code that should be a block (e.g. `latex \documentclass...`)
-                                  // We split 'latex' from the content with a newline for proper MD formatting
-                                  text = text.replace(/(`)latex\s+([^\n`]{30,})(`)/gi, '\n\n```latex\n$2\n```\n\n');
+                                  // Convert inline latex blob `latex \cmd...` → fenced block, then split commands onto new lines
+                                  text = text.replace(/(`)latex\s+([^\n`]{30,})(`)/gi, (_: string, _open: string, body: string) => {
+                                    // Insert a newline before each \command so code is readable
+                                    const formatted = body
+                                      .replace(/\s*(\\[a-zA-Z]+)/g, '\n$1')
+                                      .trim();
+                                    return `\n\n\`\`\`latex\n${formatted}\n\`\`\`\n\n`;
+                                  });
                                   // Insert newlines before inline list markers like "* Item" not already at start of line
                                   text = text.replace(/([^\n])\* /g, '$1\n\n* ');
                                   // Split inline numbered list items
