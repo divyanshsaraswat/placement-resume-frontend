@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Panel, Group as PanelGroup, Separator as PanelResizeHandle } from "react-resizable-panels";
-import Editor from "@monaco-editor/react";
 import { 
   FileText,
   Loader2,
@@ -26,12 +26,36 @@ import { resumeApi } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import { EditorHeader } from "@/components/resume/EditorHeader";
 import { AIDrawer } from "@/components/resume/AIDrawer";
-import { DocumentViewer } from "@/components/resume/DocumentViewer";
 import { useAuth } from "@/context/auth-context";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import { ConfirmationDialog } from "@/components/ui/ConfirmationDialog";
+
+// ── Lazy-loaded heavy modules ──────────────────────────────────────────────
+// Monaco: ~3.5MB — only load when the editor page mounts
+const Editor = dynamic(() => import("@monaco-editor/react"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-[#0d1117]">
+      <Loader2 size={20} className="animate-spin text-primary/40" />
+    </div>
+  ),
+});
+
+// DocumentViewer: bundles react-pdf + PDF.js (~1.2MB) — only load when a PDF is ready
+const DocumentViewer = dynamic(
+  () => import("@/components/resume/DocumentViewer").then((m) => ({ default: m.DocumentViewer })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-full w-full items-center justify-center">
+        <Loader2 size={20} className="animate-spin text-primary/40" />
+      </div>
+    ),
+  }
+);
+// ──────────────────────────────────────────────────────────────────────────
 
 export default function ResumeEditorPage() {
   const { id } = useParams();

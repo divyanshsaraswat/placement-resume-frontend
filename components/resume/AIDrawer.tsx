@@ -250,13 +250,14 @@ export function AIDrawer({
                                   ol: ({ children }) => <ol className="list-decimal ml-5 mb-3 space-y-1.5 font-light">{children}</ol>,
                                   li: ({ children }) => <li className="pl-1 text-slate-600 dark:text-slate-400">{children}</li>,
                                   code: ({ children, className }) => {
-                                    const codeStr = String(children).replace(/\n$/, '');
+                                    // Strip trailing newline, then strip accidental leading 'latex' the AI puts in code content
+                                    const rawStr = String(children).replace(/\n$/, '');
+                                    const codeStr = rawStr.replace(/^latex\s*/i, '');
                                     const isBlock = codeStr.includes('\n') || (className && className.startsWith('language-')) || codeStr.length > 50;
                                     if (isBlock) {
                                       return (
                                         <div className="relative my-3 rounded-xl overflow-hidden border border-slate-700/50 group">
-                                          <div className="flex items-center justify-between px-4 py-2 bg-slate-800">
-                                            <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{className?.replace('language-', '') || 'LaTeX'}</span>
+                                          <div className="flex items-center justify-end px-4 py-2 bg-slate-800">
                                             <CopyButton text={codeStr} />
                                           </div>
                                           <pre className="overflow-x-auto p-4 bg-slate-950 text-slate-100 text-xs font-mono leading-relaxed whitespace-pre-wrap break-words scrollbar-hide"><code>{codeStr}</code></pre>
@@ -272,21 +273,23 @@ export function AIDrawer({
                               >
                                 {(() => {
                                   let text = msg.content;
-                                  // Convert inline latex blob `latex \cmd...` → fenced block, then split commands onto new lines
-                                  text = text.replace(/(`)latex\s+([^\n`]{30,})(`)/gi, (_: string, _open: string, body: string) => {
-                                    // Insert a newline before each \command so code is readable
+                                  // Convert inline latex blob — handle both `latex \cmd` and `latex\cmd` (no space)
+                                  text = text.replace(/(`)latex\s*([^\n`]{30,})(`)/gi, (_: string, _open: string, body: string) => {
                                     const formatted = body
                                       .replace(/\s*(\\[a-zA-Z]+)/g, '\n$1')
                                       .trim();
                                     return `\n\n\`\`\`latex\n${formatted}\n\`\`\`\n\n`;
                                   });
                                   // Split bold-used-as-heading running directly into next paragraph
-                                  // e.g. **Highlight Achievements**In each project → **Highlight Achievements**\n\nIn each project
+                                  // e.g. **Highlight Achievements**In each → **Highlight Achievements**\n\nIn each
                                   text = text.replace(/(\*\*[^*\n]{3,}\*\*)([A-Z])/g, '$1\n\n$2');
-                                  // Split heading text that has no ## but directly runs into a sentence
-                                  // e.g. "Emphasizing Projects in Your LaTeX ResumeTo emphasize"
-                                  // Detect CamelCase boundary between a Title-case word and "To/In/Use/Here/Create/By/For"
-                                  text = text.replace(/([a-z])(To |In |Use |Here |By |For |Create |Add |Make |You |With |When |While |Consider |This |These |The |A )/g, '$1\n\n$2');
+                                  // Split plain-text heading that runs into next sentence with no space/punctuation
+                                  // Uses \b so "Here" matches "Here's", "Here," etc.
+                                  // e.g. "EmphasisHere's an example" or "ResumeTo emphasize"
+                                  text = text.replace(
+                                    /([a-z])\b(To|In|Use|Here|By|For|Create|Add|Make|You|Your|We|With|When|While|Consider|This|These|The|A|An|Let|It|That|There|Now|Note|First|Second|Next|After|Also|Always|Never|Remember|Ensure|Simply|Just|So|As|If|Each|Every|Some|Many)\b/g,
+                                    '$1\n\n$2'
+                                  );
                                   // Insert newlines before inline list markers like "* Item" not already at start of line
                                   text = text.replace(/([^\n])\* /g, '$1\n\n* ');
                                   // Split inline numbered list items

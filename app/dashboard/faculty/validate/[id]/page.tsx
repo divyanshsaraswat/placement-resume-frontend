@@ -23,9 +23,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import dynamic from "next/dynamic";
-import { DocumentViewer } from "@/components/resume/DocumentViewer";
 
 const MonacoEditor = dynamic(() => import("@monaco-editor/react"), { ssr: false });
+
+const DocumentViewer = dynamic(
+  () => import("@/components/resume/DocumentViewer").then((m) => ({ default: m.DocumentViewer })),
+  { ssr: false }
+);
 
 export default function ResumeReviewPage() {
   const { id } = useParams();

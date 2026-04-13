@@ -41,12 +41,7 @@ export const metadata: Metadata = {
   },
 };
 
-import { ThemeProvider } from "@/components/theme-provider";
-import { AuthProvider } from "@/context/auth-context";
-import { Toaster } from "sonner";
-import NextTopLoader from "nextjs-toploader";
-import { SmoothScroll } from "@/components/SmoothScroll";
-import { SessionProvider } from "next-auth/react";
+import { Providers } from "./providers";
 
 export default function RootLayout({
   children,
@@ -56,26 +51,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className="antialiased selection:bg-accent selection:text-white">
-        <NextTopLoader
-          color="var(--primary)"
-          showSpinner={false}
-          shadow="0 0 10px var(--primary),0 0 5px var(--primary)"
-        />
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <SessionProvider>
-            <AuthProvider>
-              <SmoothScroll>
-                {children}
-              </SmoothScroll>
-              <Toaster position="bottom-right" richColors closeButton theme="system" />
-            </AuthProvider>
-          </SessionProvider>
-        </ThemeProvider>
+        <Providers>{children}</Providers>
       </body>
     </html>
   );
